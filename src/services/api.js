@@ -32,7 +32,25 @@ async function request(path, options = {}) {
   // Bypass ngrok browser warning page
   if (isNgrok) headers.set('ngrok-skip-browser-warning', 'true');
 
-  const response = await fetch(`${base}${path}`, { ...options, headers });
+  const controller = new AbortController();
+  const timeoutMs = options.timeout || 12000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  let response;
+  try {
+    response = await fetch(`${base}${path}`, {
+      ...options,
+      headers,
+      signal: options.signal || controller.signal,
+    });
+  } catch (fetchErr) {
+    if (fetchErr.name === 'AbortError') {
+      throw new Error(`Request timed out after ${timeoutMs / 1000}s`);
+    }
+    throw fetchErr;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
     const fallbackMessage = `Request failed with status ${response.status}`;
@@ -58,11 +76,47 @@ export async function getHomepageContent() {
 }
 
 export async function getCourses() {
-  return request('/api/courses/');
+  try {
+    const list = await request('/api/courses/');
+    if (Array.isArray(list) && list.length > 0) {
+      try {
+        localStorage.setItem('twige_cached_all_courses', JSON.stringify(list));
+      } catch (_) {}
+    }
+    return list;
+  } catch (err) {
+    try {
+      const cached = localStorage.getItem('twige_cached_all_courses');
+      if (cached) return JSON.parse(cached);
+    } catch (_) {}
+    throw err;
+  }
 }
 
 export async function getCourse(id) {
-  return request(`/api/courses/${id}/`);
+  try {
+    const course = await request(`/api/courses/${id}/`);
+    if (course && course.id) {
+      try {
+        localStorage.setItem(`twige_course_meta_${course.id}`, JSON.stringify(course));
+      } catch (_) {}
+    }
+    return course;
+  } catch (err) {
+    // Instant fallback if network request fails or times out
+    try {
+      const cachedCourse = localStorage.getItem(`twige_course_meta_${id}`);
+      if (cachedCourse) return JSON.parse(cachedCourse);
+
+      const allCached = localStorage.getItem('twige_cached_all_courses');
+      if (allCached) {
+        const list = JSON.parse(allCached);
+        const match = list.find((c) => String(c.id) === String(id));
+        if (match) return match;
+      }
+    } catch (_) {}
+    throw err;
+  }
 }
 
 export async function getDiscussions(courseId) {

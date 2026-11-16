@@ -85,22 +85,63 @@ function getDB() {
       return;
     }
 
-    const request = window.indexedDB.open(DB_NAME, DB_VERSION);
-
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const store = db.createObjectStore(STORE_NAME, { keyPath: 'lessonId' });
-        store.createIndex('courseId', 'courseId', { unique: false });
-        store.createIndex('downloadedAt', 'downloadedAt', { unique: false });
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        reject(new Error('IndexedDB open timed out'));
       }
-      if (!db.objectStoreNames.contains(COURSE_STORE_NAME)) {
-        db.createObjectStore(COURSE_STORE_NAME, { keyPath: 'id' });
-      }
-    };
+    }, 1500);
 
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    try {
+      const request = window.indexedDB.open(DB_NAME, DB_VERSION);
+
+      request.onblocked = () => {
+        console.warn('IndexedDB upgrade blocked');
+        if (!settled) {
+          settled = true;
+          clearTimeout(timer);
+          reject(new Error('IndexedDB blocked'));
+        }
+      };
+
+      request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          const store = db.createObjectStore(STORE_NAME, { keyPath: 'lessonId' });
+          store.createIndex('courseId', 'courseId', { unique: false });
+          store.createIndex('downloadedAt', 'downloadedAt', { unique: false });
+        }
+        if (!db.objectStoreNames.contains(COURSE_STORE_NAME)) {
+          db.createObjectStore(COURSE_STORE_NAME, { keyPath: 'id' });
+        }
+      };
+
+      request.onsuccess = () => {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timer);
+          resolve(request.result);
+        }
+      };
+
+      request.onerror = () => {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timer);
+          reject(request.error || new Error('IndexedDB error'));
+        }
+      };
+    } catch (e) {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        reject(e);
+      }
+    }
+  }).catch((err) => {
+    dbPromise = null;
+    throw err;
   });
 
   return dbPromise;
@@ -210,24 +251,29 @@ export async function getOfflineCourse(courseId) {
   if (!courseId) return null;
   const idStr = String(courseId);
 
-  // 1. Try IndexedDB
-  try {
-    const db = await getDB();
-    const result = await new Promise((resolve) => {
-      const tx = db.transaction(COURSE_STORE_NAME, 'readonly');
-      const store = tx.objectStore(COURSE_STORE_NAME);
-      const req = store.get(idStr);
-      req.onsuccess = () => resolve(req.result || null);
-      req.onerror = () => resolve(null);
-    });
-    if (result) return result;
-  } catch (_) {}
-
-  // 2. Try localStorage synchronous cache
+  // 1. Try localStorage synchronous cache FIRST (0ms, guaranteed non-blocking)
   try {
     const cached = localStorage.getItem(`twige_course_meta_${idStr}`);
     if (cached) {
       return JSON.parse(cached);
+    }
+  } catch (_) {}
+
+  // 2. Try IndexedDB with safe timeout
+  try {
+    const db = await Promise.race([
+      getDB(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 800)),
+    ]);
+    if (db && db.objectStoreNames.contains(COURSE_STORE_NAME)) {
+      const result = await new Promise((resolve) => {
+        const tx = db.transaction(COURSE_STORE_NAME, 'readonly');
+        const store = tx.objectStore(COURSE_STORE_NAME);
+        const req = store.get(idStr);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => resolve(null);
+      });
+      if (result) return result;
     }
   } catch (_) {}
 
@@ -278,12 +324,24 @@ export async function getOfflineCourse(courseId) {
  * Check if a lesson is downloaded for offline playback
  */
 export async function isLessonDownloaded(lessonId) {
+  if (!lessonId) return false;
+  const idStr = String(lessonId);
+
+  // Quick synchronous check
+  try {
+    const raw = localStorage.getItem('twige_downloaded_lesson_ids');
+    if (raw) {
+      const list = JSON.parse(raw);
+      if (list.includes(idStr)) return true;
+    }
+  } catch (_) {}
+
   try {
     const db = await getDB();
     return new Promise((resolve) => {
       const tx = db.transaction(STORE_NAME, 'readonly');
       const store = tx.objectStore(STORE_NAME);
-      const req = store.get(String(lessonId));
+      const req = store.get(idStr);
       req.onsuccess = () => resolve(Boolean(req.result));
       req.onerror = () => resolve(false);
     });
@@ -324,7 +382,15 @@ export async function getDownloadedLesson(lessonId) {
       const tx = db.transaction(STORE_NAME, 'readonly');
       const store = tx.objectStore(STORE_NAME);
       const req = store.get(String(lessonId));
-      req.onsuccess = () => resolve(req.result || null);
+      req.onsuccess = () => {
+        const item = req.result;
+        if (item) {
+          if (!item.videoBlob && item.videoBuffer) {
+            item.videoBlob = new Blob([item.videoBuffer], { type: item.mimeType || 'video/mp4' });
+          }
+        }
+        resolve(item || null);
+      };
       req.onerror = () => resolve(null);
     });
   } catch (error) {
@@ -337,8 +403,15 @@ export async function getDownloadedLesson(lessonId) {
  */
 export async function getOfflinePlaybackUrl(lessonId) {
   const record = await getDownloadedLesson(lessonId);
-  if (!record || !record.videoBlob) return null;
-  return URL.createObjectURL(record.videoBlob);
+  if (!record) return null;
+  if (record.videoBlob instanceof Blob) {
+    return URL.createObjectURL(record.videoBlob);
+  }
+  if (record.videoBuffer) {
+    const blob = new Blob([record.videoBuffer], { type: record.mimeType || 'video/mp4' });
+    return URL.createObjectURL(blob);
+  }
+  return null;
 }
 
 /**
@@ -485,49 +558,96 @@ export async function downloadLessonVideo(lesson, course, onProgress = null) {
       const fileSize = blob.size;
       const fileSizeLabel = formatBytes(fileSize);
 
-      const courseSnapshot = {
-        id: String(course.id),
-        title: course.title,
-        thumbnail: course.thumbnail,
-        description: course.description,
-        instructor: course.instructor,
-        duration: course.duration,
-        level: course.level,
-        category: course.category,
-        rating: course.rating,
-        price: course.price,
-        curriculum: course.curriculum,
-      };
+      // Sanitize snapshots to plain objects (eliminates Vue reactive proxy DataCloneError in IndexedDB)
+      let cleanCourseSnapshot = null;
+      try {
+        cleanCourseSnapshot = JSON.parse(JSON.stringify({
+          id: String(course.id),
+          title: String(course.title || ''),
+          thumbnail: String(course.thumbnail || ''),
+          description: String(course.description || ''),
+          instructor: String(course.instructor || 'Twige Academy'),
+          duration: String(course.duration || ''),
+          level: String(course.level || 'All levels'),
+          category: String(course.category || 'General'),
+          rating: Number(course.rating || 4.8),
+          price: Number(course.price || 0),
+          curriculum: Array.isArray(course.curriculum) ? course.curriculum : [],
+        }));
+      } catch (_) {}
+
+      let cleanLessonSnapshot = null;
+      try {
+        cleanLessonSnapshot = JSON.parse(JSON.stringify({
+          title: String(lesson.title || lesson.lessonTitle || 'Lesson'),
+          duration: String(lesson.duration || 'Video'),
+          description: String(lesson.description || ''),
+          lessonIndex: Number(lessonIndex),
+        }));
+      } catch (_) {}
+
+      // Convert blob to ArrayBuffer (guaranteed 100% cloneable in every IndexedDB implementation)
+      let arrayBuffer = null;
+      try {
+        arrayBuffer = await blob.arrayBuffer();
+      } catch (_) {}
 
       const record = {
-        lessonId,
+        lessonId: String(lessonId),
         courseId: String(course.id),
-        courseTitle: course.title,
-        courseThumbnail: course.thumbnail,
-        lessonTitle: lesson.title || lesson.lessonTitle,
-        lessonIndex,
-        duration: lesson.duration || 'Video',
-        videoBlob: blob, // sandboxed binary blob inside origin database
+        courseTitle: String(course.title || 'Course'),
+        courseThumbnail: String(course.thumbnail || ''),
+        lessonTitle: String(lesson.title || lesson.lessonTitle || 'Lesson'),
+        lessonIndex: Number(lessonIndex),
+        duration: String(lesson.duration || 'Video'),
+        videoBlob: blob,
+        videoBuffer: arrayBuffer,
         fileSize,
         fileSizeLabel,
         mimeType: blob.type || 'video/mp4',
-        courseSnapshot,
-        lessonSnapshot: {
-          title: lesson.title || lesson.lessonTitle,
-          duration: lesson.duration || 'Video',
-          description: lesson.description || '',
-          lessonIndex,
-        },
+        courseSnapshot: cleanCourseSnapshot,
+        lessonSnapshot: cleanLessonSnapshot,
         downloadedAt: new Date().toISOString(),
       };
 
-      await new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, 'readwrite');
-        const store = tx.objectStore(STORE_NAME);
-        const req = store.put(record);
-        req.onsuccess = () => resolve(true);
-        req.onerror = () => reject(req.error);
-      });
+      try {
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.put(record);
+
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => reject(tx.error || new Error('Transaction failed'));
+          tx.onabort = () => reject(tx.error || new Error('Transaction aborted'));
+          req.onerror = () => reject(req.error || new Error('Store put failed'));
+        });
+      } catch (putErr) {
+        console.warn('Initial store.put with Blob failed, retrying with ArrayBuffer only:', putErr);
+        // If storing with videoBlob threw DataCloneError, retry with only videoBuffer
+        const fallbackRecord = { ...record };
+        delete fallbackRecord.videoBlob;
+
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.put(fallbackRecord);
+
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => reject(tx.error || new Error('Transaction failed'));
+          tx.onabort = () => reject(tx.error || new Error('Transaction aborted'));
+          req.onerror = () => reject(req.error || new Error('Store put failed'));
+        });
+      }
+
+      // Save to localStorage for instant synchronous fast lookup
+      try {
+        const raw = localStorage.getItem('twige_downloaded_lesson_ids') || '[]';
+        const list = JSON.parse(raw);
+        if (!list.includes(String(lessonId))) {
+          list.push(String(lessonId));
+          localStorage.setItem('twige_downloaded_lesson_ids', JSON.stringify(list));
+        }
+      } catch (_) {}
 
       emitDownloadsUpdate({ lessonId, status: 'completed', record });
       return record;
@@ -544,6 +664,8 @@ export async function downloadLessonVideo(lesson, course, onProgress = null) {
   return downloadPromise;
 }
 
+
+
 /**
  * Delete a downloaded lesson from sandboxed storage
  */
@@ -557,6 +679,13 @@ export async function deleteDownloadedLesson(lessonId) {
       req.onsuccess = () => resolve(true);
       req.onerror = () => reject(req.error);
     });
+
+    try {
+      const raw = localStorage.getItem('twige_downloaded_lesson_ids') || '[]';
+      const list = JSON.parse(raw).filter((id) => id !== String(lessonId));
+      localStorage.setItem('twige_downloaded_lesson_ids', JSON.stringify(list));
+    } catch (_) {}
+
     emitDownloadsUpdate({ lessonId, status: 'deleted' });
     return true;
   } catch (error) {
@@ -578,6 +707,11 @@ export async function clearAllDownloads() {
       req.onsuccess = () => resolve(true);
       req.onerror = () => reject(req.error);
     });
+
+    try {
+      localStorage.removeItem('twige_downloaded_lesson_ids');
+    } catch (_) {}
+
     emitDownloadsUpdate({ status: 'cleared' });
     return true;
   } catch (error) {

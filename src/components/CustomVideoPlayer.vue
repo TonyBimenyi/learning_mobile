@@ -1,6 +1,10 @@
 <template>
   <div
     class="custom-video-player"
+    :class="{
+      'is-fullscreen': isFullscreen,
+      'is-fullscreen-rotated': isFullscreenRotated
+    }"
     @click="handleSurfaceTap"
     @mousemove="revealTemporarily"
     @touchstart.passive="revealTemporarily"
@@ -158,8 +162,13 @@
           <span class="time-total">{{ formatClock(duration) }}</span>
         </div>
 
-        <button class="control-icon control-icon--bottom" type="button" aria-label="Fullscreen" @click="toggleFullscreen">
-          <i class="fa-solid fa-expand"></i>
+        <button
+          class="control-icon control-icon--bottom"
+          type="button"
+          :aria-label="isFullscreen || isFullscreenRotated ? 'Exit Fullscreen' : 'Fullscreen'"
+          @click="toggleFullscreen"
+        >
+          <i :class="(isFullscreen || isFullscreenRotated) ? 'fa-solid fa-compress' : 'fa-solid fa-expand'"></i>
         </button>
       </div>
 
@@ -207,6 +216,8 @@
 </template>
 
 <script>
+import { ScreenOrientation } from '@capacitor/screen-orientation';
+
 export default {
   name: 'CustomVideoPlayer',
   props: {
@@ -250,6 +261,8 @@ export default {
       hasLoadedFrame: false,
       hasError: false,
       showSettings: false,
+      isFullscreen: false,
+      isFullscreenRotated: false,
       captionsEnabled: false,
       castEnabled: false,
       playbackSpeed: 1,
@@ -319,10 +332,23 @@ export default {
     window.setTimeout(() => {
       this.isLoading = false;
     }, 1000);
+
+    document.addEventListener('fullscreenchange', this.handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', this.handleFullscreenChange);
   },
   beforeUnmount() {
     window.clearTimeout(this.hideControlsTimer);
     window.clearTimeout(this.loadingSafetyTimer);
+
+    document.removeEventListener('fullscreenchange', this.handleFullscreenChange);
+    document.removeEventListener('webkitfullscreenchange', this.handleFullscreenChange);
+
+    try {
+      ScreenOrientation.unlock();
+    } catch (_) {}
+    try {
+      screen.orientation?.unlock?.();
+    } catch (_) {}
   },
   methods: {
     resetPlayerState() {
@@ -655,32 +681,83 @@ export default {
       }
       return `${minutes}:${String(remainder).padStart(2, '0')}`;
     },
-    toggleFullscreen() {
+    async toggleFullscreen() {
       const container = this.$el;
       const video = this.$refs.video;
 
       const isFs =
-        document.fullscreenElement ||
-        document.webkitFullscreenElement ||
-        document.mozFullScreenElement;
+        Boolean(document.fullscreenElement) ||
+        Boolean(document.webkitFullscreenElement) ||
+        Boolean(document.mozFullScreenElement) ||
+        this.isFullscreen ||
+        this.isFullscreenRotated;
 
       if (!isFs) {
-        // Try container fullscreen first (desktop + Android Chrome)
-        if (container.requestFullscreen) {
-          container.requestFullscreen();
-        } else if (container.webkitRequestFullscreen) {
-          container.webkitRequestFullscreen();
-        } else if (video?.webkitEnterFullscreen) {
-          // iOS Safari native fullscreen for video element
-          video.webkitEnterFullscreen();
+        this.isFullscreen = true;
+
+        // 1. Lock physical orientation to landscape on mobile
+        try {
+          await ScreenOrientation.lock({ orientation: 'landscape' });
+        } catch (_) {
+          try {
+            await screen.orientation?.lock?.('landscape');
+          } catch (_) {
+            // CSS fallback rotation if orientation lock is unavailable in browser
+            this.isFullscreenRotated = true;
+          }
+        }
+
+        // 2. Request native HTML fullscreen
+        try {
+          if (container.requestFullscreen) {
+            await container.requestFullscreen();
+          } else if (container.webkitRequestFullscreen) {
+            await container.webkitRequestFullscreen();
+          } else if (video?.webkitEnterFullscreen) {
+            video.webkitEnterFullscreen();
+          }
+        } catch (fsErr) {
+          console.warn('Native requestFullscreen failed, using CSS rotation:', fsErr);
+          this.isFullscreenRotated = true;
         }
       } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-          document.webkitExitFullscreen();
-        } else if (document.mozCancelFullScreen) {
-          document.mozCancelFullScreen();
+        this.isFullscreen = false;
+        this.isFullscreenRotated = false;
+
+        // Unlock orientation back to portrait / auto
+        try {
+          await ScreenOrientation.unlock();
+        } catch (_) {
+          try {
+            await screen.orientation?.unlock?.();
+          } catch (_) {}
+        }
+
+        try {
+          if (document.exitFullscreen) {
+            await document.exitFullscreen();
+          } else if (document.webkitExitFullscreen) {
+            await document.webkitExitFullscreen();
+          } else if (document.mozCancelFullScreen) {
+            await document.mozCancelFullScreen();
+          }
+        } catch (_) {}
+      }
+    },
+    async handleFullscreenChange() {
+      const isFs = Boolean(
+        document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement
+      );
+      if (!isFs && this.isFullscreen && !this.isFullscreenRotated) {
+        this.isFullscreen = false;
+        try {
+          await ScreenOrientation.unlock();
+        } catch (_) {
+          try {
+            screen.orientation?.unlock?.();
+          } catch (_) {}
         }
       }
     },
@@ -1200,5 +1277,43 @@ export default {
   .custom-video-player__transport {
     gap: 16px;
   }
+}
+
+/* Fullscreen styling for modern landscape playback */
+.custom-video-player:fullscreen,
+.custom-video-player:-webkit-full-screen {
+  width: 100vw !important;
+  height: 100vh !important;
+  border-radius: 0 !important;
+  background: #000000 !important;
+  max-height: none !important;
+  z-index: 999999 !important;
+}
+
+.custom-video-player:fullscreen .custom-video-player__media,
+.custom-video-player:-webkit-full-screen .custom-video-player__media {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 100vh !important;
+  object-fit: contain !important;
+}
+
+/* CSS fallback rotation if device orientation lock is restricted */
+.custom-video-player.is-fullscreen-rotated {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 999999 !important;
+  border-radius: 0 !important;
+  background: #000000 !important;
+  max-height: none !important;
+}
+
+.custom-video-player.is-fullscreen-rotated .custom-video-player__media {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 100vh !important;
+  object-fit: contain !important;
 }
 </style>

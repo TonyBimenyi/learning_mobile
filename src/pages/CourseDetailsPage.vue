@@ -1279,100 +1279,137 @@ export default {
       }
     };
 
+    const applyCourseData = (data) => {
+      if (!data) return false;
+      course.value = data;
+
+      const qIndex = route.query.lessonIndex !== undefined ? Number(route.query.lessonIndex) : null;
+      const latestEntry = Object.values(progressMap.value)
+        .filter((entry) => entry.courseId === data.id)
+        .sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime())[0];
+
+      let initialIndex = 0;
+      if (qIndex !== null && !isNaN(qIndex) && data.curriculum?.[qIndex]) {
+        initialIndex = qIndex;
+      } else if (latestEntry && data.curriculum?.[latestEntry.lessonIndex]) {
+        initialIndex = latestEntry.lessonIndex;
+      }
+
+      selectedLessonIndex.value = initialIndex;
+      selectedLesson.value = data.curriculum?.[initialIndex] || data.curriculum?.[0] || {
+        id: `${data.id}-0`,
+        title: data.title || 'Course Lesson',
+        duration: data.duration || 'Flexible',
+        type: 'video',
+        videoUrl: '',
+      };
+
+      currentVideoTime.value = Number(latestEntry?.seconds || 0);
+      questionForm.value.timeSec = currentVideoTime.value;
+      isLoading.value = false;
+      return true;
+    };
+
     onMounted(async () => {
       window.addEventListener('twige:downloads-update', handleDownloadsUpdate);
 
-      // ── Step 1: Instant offline cache check ──
+      // ── Step 1: Instant local cache check (0ms render) ──
       try {
-        const offlineData = await getOfflineCourse(props.id);
-        if (offlineData) {
-          course.value = offlineData;
-          isLoading.value = false;
-          isOfflineMode.value = !navigator.onLine;
+        // A. From localStorage direct course cache
+        const localCached = localStorage.getItem(`twige_course_meta_${props.id}`);
+        if (localCached) {
+          applyCourseData(JSON.parse(localCached));
+        }
 
-          const qIndex = route.query.lessonIndex !== undefined ? Number(route.query.lessonIndex) : 0;
-          selectedLessonIndex.value = qIndex;
-          selectedLesson.value = offlineData.curriculum?.[qIndex] || offlineData.curriculum?.[0] || null;
+        // B. From all cached courses list
+        if (!course.value) {
+          const allCached = localStorage.getItem('twige_cached_all_courses');
+          if (allCached) {
+            const list = JSON.parse(allCached);
+            const match = list.find((c) => String(c.id) === String(props.id));
+            if (match) {
+              applyCourseData(match);
+            }
+          }
+        }
 
-          await loadCourseDownloads();
+        // C. From offline downloads vault
+        if (!course.value) {
+          const offlineData = await getOfflineCourse(props.id);
+          if (offlineData) {
+            applyCourseData(offlineData);
+            isOfflineMode.value = !navigator.onLine;
+          }
+        }
+
+        if (course.value) {
+          loadCourseDownloads();
         }
       } catch (err) {
-        console.warn('Offline cache lookup error:', err);
+        console.warn('Initial cache check warning:', err);
       }
 
-      // ── Step 2: Attempt online API fetch ──
+      // ── Step 2: Fetch Course directly (Fast, independent of secondary data) ──
       try {
-        const [courseData, discussionData, reviewData, currentUser, courseList, enrollmentList] = await Promise.all([
-          getCourse(props.id).catch(() => null),
-          getDiscussions(props.id).catch(() => []),
-          getReviews(props.id).catch(() => []),
-          getCurrentUser().catch(() => null),
-          getCourses().catch(() => []),
-          getEnrollments().catch(() => []),
-        ]);
-
+        const courseData = await getCourse(props.id).catch(() => null);
         if (courseData) {
-          course.value = courseData;
+          applyCourseData(courseData);
           isOfflineMode.value = false;
-          isLoading.value = false;
+          loadCourseDownloads();
 
-          // If course has downloaded lessons, refresh the offline course snapshot
           getCourseDownloadedLessonIds(courseData.id).then((ids) => {
             if (ids && ids.length > 0) {
               saveOfflineCourse(courseData);
             }
           }).catch(() => {});
         } else if (!course.value) {
-          // If network failed and initial check didn't find cache, try once more
-          const fallbackData = await getOfflineCourse(props.id);
-          if (fallbackData) {
-            course.value = fallbackData;
+          const fallback = await getOfflineCourse(props.id);
+          if (fallback) {
+            applyCourseData(fallback);
             isOfflineMode.value = true;
+            loadCourseDownloads();
           }
-          isLoading.value = false;
         }
-
-        allCourses.value = courseList || [];
-        enrollments.value = enrollmentList || [];
-        discussions.value = (discussionData || []).map(normalizeDiscussion);
-        reviews.value = (reviewData || []).map(normalizeReview);
-
-        if (currentUser) {
-          user.value = {
-            id: currentUser.id || currentUser.extId || '',
-            name: currentUser.name || 'Learner',
-            avatar: currentUser.avatar || '',
-            role: currentUser.role || 'student',
-            email: currentUser.email || '',
-            whatsapp: currentUser.whatsapp || '',
-          };
-        }
-
-        if (course.value) {
-          const qIndex = route.query.lessonIndex !== undefined ? Number(route.query.lessonIndex) : null;
-          const latestEntry = Object.values(progressMap.value)
-            .filter((entry) => entry.courseId === course.value?.id)
-            .sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime())[0];
-
-          let initialIndex = 0;
-          if (qIndex !== null && !isNaN(qIndex) && course.value?.curriculum?.[qIndex]) {
-            initialIndex = qIndex;
-          } else {
-            initialIndex = latestEntry?.lessonIndex ?? 0;
-          }
-
-          selectedLessonIndex.value = initialIndex;
-          selectedLesson.value = course.value?.curriculum?.[initialIndex] || course.value?.curriculum?.[0] || null;
-          currentVideoTime.value = Number(latestEntry?.seconds || 0);
-          questionForm.value.timeSec = currentVideoTime.value;
-          syncPaymentNotice();
-          await loadCourseDownloads();
-        }
-      } catch (error) {
-        console.error('Failed to load course details:', error);
+      } catch (e) {
+        console.warn('Failed to load course from API:', e);
       } finally {
         isLoading.value = false;
       }
+
+      // ── Step 3: Fetch secondary data in background (never blocks page) ──
+      getDiscussions(props.id)
+        .then((d) => { discussions.value = (d || []).map(normalizeDiscussion); })
+        .catch(() => {});
+
+      getReviews(props.id)
+        .then((r) => { reviews.value = (r || []).map(normalizeReview); })
+        .catch(() => {});
+
+      getCurrentUser()
+        .then((u) => {
+          if (u) {
+            user.value = {
+              id: u.id || u.extId || '',
+              name: u.name || 'Learner',
+              avatar: u.avatar || '',
+              role: u.role || 'student',
+              email: u.email || '',
+              whatsapp: u.whatsapp || '',
+            };
+          }
+        })
+        .catch(() => {});
+
+      getEnrollments()
+        .then((e) => {
+          enrollments.value = e || [];
+          syncPaymentNotice();
+        })
+        .catch(() => {});
+
+      getCourses()
+        .then((c) => { allCourses.value = c || []; })
+        .catch(() => {});
     });
 
     onBeforeUnmount(() => {
