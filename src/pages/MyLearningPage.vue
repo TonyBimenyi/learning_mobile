@@ -6,17 +6,17 @@
         <section class="learning-hero">
           <div class="learning-hero__info">
             <span class="pill pill--brand">
-              <i class="fa-solid fa-graduation-cap"></i> My Dashboard
+              <i class="fa-solid fa-graduation-cap"></i> {{ t('myDashboard') }}
             </span>
-            <h1>My Learning</h1>
-            <p>Track your course progress, resume recent video lessons, and manage offline downloads.</p>
+            <h1>{{ t('navMyLearning') }}</h1>
+            <p>{{ t('myLearningSubtitle') }}</p>
           </div>
           <div class="learning-hero__streak">
             <div class="streak-icon">
               <i class="fa-solid fa-fire"></i>
             </div>
             <div>
-              <small>Active Tracks</small>
+              <small>{{ t('activeTracks') }}</small>
               <strong>{{ activeCourses.length }}</strong>
             </div>
           </div>
@@ -26,9 +26,9 @@
         <div class="learning-tabs-dock">
           <button
             class="learning-tab-dock-btn"
-            :class="{ 'is-active': activeTab === 'courses' }"
+            :class="{ 'is-active': activeTab === translate('courses') }"
             type="button"
-            @click="activeTab = 'courses'"
+            @click="activeTab = translate('courses')"
           >
             <i class="fa-solid fa-book-open"></i>
             <span>Courses ({{ activeCourses.length }})</span>
@@ -45,7 +45,7 @@
         </div>
 
         <!-- TAB 1: COURSES VIEW -->
-        <template v-if="activeTab === 'courses'">
+        <template v-if="activeTab === translate('courses')">
           <!-- Stats Overview Row -->
           <section v-if="isLoading" class="overview-stats-grid">
             <article v-for="n in 3" :key="'stat-skel-'+n" class="surface-card stat-item">
@@ -63,7 +63,7 @@
               </div>
               <div class="stat-item__data">
                 <strong>{{ activeCourses.length }}</strong>
-                <span>Active courses</span>
+                <span>{{ t('activeCourses') }}</span>
               </div>
             </article>
 
@@ -73,7 +73,7 @@
               </div>
               <div class="stat-item__data">
                 <strong>{{ continueWatching.length }}</strong>
-                <span>Resume points</span>
+                <span>{{ t('resumePoints') }}</span>
               </div>
             </article>
 
@@ -83,7 +83,7 @@
               </div>
               <div class="stat-item__data">
                 <strong>{{ completedCourses }}</strong>
-                <span>Near complete</span>
+                <span>{{ t('nearComplete') }}</span>
               </div>
             </article>
           </section>
@@ -93,9 +93,9 @@
             <div class="section-heading">
               <div>
                 <p class="section-kicker">
-                  <i class="fa-solid fa-bolt"></i> Jump Back In
+                  <i class="fa-solid fa-bolt"></i> {{ t('jumpBackIn') }}
                 </p>
-                <h3>Continue watching</h3>
+                <h3>{{ t('continueWatching') }}</h3>
               </div>
               <span v-if="continueWatching.length" class="section-caption">
                 {{ continueWatching.length }} {{ continueWatching.length === 1 ? 'lesson' : 'lessons' }}
@@ -150,10 +150,10 @@
 
             <article v-else-if="!isLoading" class="empty-card">
               <div class="empty-icon"><i class="fa-regular fa-clock"></i></div>
-              <strong>No active watch history</strong>
-              <p>Once you start any video lesson, your resume points will appear here with instant continuation.</p>
+              <strong>{{ t('noWatchHistory') }}</strong>
+              <p>{{ t('noWatchHistoryHint') }}</p>
               <RouterLink to="/discover" class="primary-button">
-                <span>Find a Course</span>
+                <span>{{ t('findACourse') }}</span>
                 <i class="fa-solid fa-arrow-right"></i>
               </RouterLink>
             </article>
@@ -164,9 +164,9 @@
             <div class="section-heading">
               <div>
                 <p class="section-kicker">
-                  <i class="fa-solid fa-layer-group"></i> My Courses
+                  <i class="fa-solid fa-layer-group"></i> {{ t('myCourses') }}
                 </p>
-                <h3>Enrolled library</h3>
+                <h3>{{ t('enrolledLibrary') }}</h3>
               </div>
               <span class="section-caption">{{ activeCourses.length }} total</span>
             </div>
@@ -226,10 +226,10 @@
 
             <article v-else-if="!isLoading" class="empty-card">
               <div class="empty-icon"><i class="fa-solid fa-book-open"></i></div>
-              <strong>Your enrolled courses will appear here</strong>
-              <p>Explore thousands of minutes of practical skills and enroll in your first course.</p>
+              <strong>{{ t('noEnrolledCourses') }}</strong>
+              <p>{{ t('noEnrolledHint') }}</p>
               <RouterLink to="/discover" class="primary-button">
-                <span>Explore Catalog</span>
+                <span>{{ t('exploreCatalog') }}</span>
                 <i class="fa-solid fa-compass"></i>
               </RouterLink>
             </article>
@@ -242,9 +242,9 @@
             <div class="surface-card downloads-vault-header">
               <div class="vault-info">
                 <span class="vault-secure-pill">
-                  <i class="fa-solid fa-shield-halved"></i> App Sandbox Protected
+                  <i class="fa-solid fa-shield-halved"></i> {{ t('appSandboxProtected') }}
                 </span>
-                <h3>Offline Downloads</h3>
+                <h3>{{ t('offlineDownloads') }}</h3>
                 <p>
                   Videos are stored inside the app sandbox for offline watching. They cannot be shared or opened outside the Twige app.
                 </p>
@@ -279,7 +279,7 @@
                     <i class="fa-solid fa-play"></i>
                   </div>
                   <span class="offline-ready-badge">
-                    <i class="fa-solid fa-bolt"></i> Offline
+                    <i class="fa-solid fa-bolt"></i> {{ t('offline') }}
                   </span>
                 </div>
 
@@ -297,7 +297,7 @@
                   <div class="download-card__actions">
                     <button class="primary-button watch-offline-btn" type="button" @click="playOfflineLesson(item)">
                       <i class="fa-solid fa-circle-play"></i>
-                      <span>Watch Offline</span>
+                      <span>{{ t('watchOffline') }}</span>
                     </button>
                     <button
                       class="ghost-button delete-download-btn"
@@ -316,7 +316,7 @@
               <div class="empty-icon"><i class="fa-solid fa-cloud-arrow-down"></i></div>
               <strong>No offline videos saved yet</strong>
               <p>Go to any course lesson and tap the <b>Download</b> button to save it securely for offline viewing without cellular data.</p>
-              <button class="primary-button" type="button" @click="activeTab = 'courses'">
+              <button class="primary-button" type="button" @click="activeTab = translate('courses')">
                 <span>Browse My Courses</span>
                 <i class="fa-solid fa-arrow-right"></i>
               </button>
@@ -331,6 +331,7 @@
 </template>
 
 <script>
+import { translate } from '@/services/i18n';
 import { IonContent, IonPage } from '@ionic/vue';
 import { onMounted, onUnmounted, ref, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
@@ -356,7 +357,7 @@ export default {
     const courses = ref([]);
     const enrollments = ref([]);
     const progressMap = ref(getProgressMap());
-    const activeTab = ref(route.query.tab === 'downloads' ? 'downloads' : 'courses');
+    const activeTab = ref(route.query.tab === 'downloads' ? 'downloads' : translate('courses'));
     const downloads = ref([]);
     const totalStorageUsed = ref('0 B');
     const isLoading = ref(true);
@@ -398,7 +399,7 @@ export default {
         downloads.value = dList || [];
         totalStorageUsed.value = usage.totalFormatted || '0 B';
       } catch (err) {
-        console.warn('Could not load offline downloads', err);
+        console.warn(translate('loadDownloadsError'), err);
       }
     };
 

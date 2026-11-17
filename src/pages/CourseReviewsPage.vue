@@ -8,14 +8,14 @@
               <i class="fa-solid fa-arrow-left"></i>
             </button>
             <div class="reviews-topbar__copy">
-              <span class="section-kicker">Learner Reviews</span>
+              <span class="section-kicker">{{ t('learnerReviews') }}</span>
               <h1>{{ course.title }}</h1>
             </div>
           </div>
 
           <section class="surface-card review-hero">
             <div class="review-hero__rating">
-              <span class="section-kicker">Learner feedback</span>
+              <span class="section-kicker">{{ t('learnerFeedback') }}</span>
               <div class="rating-display">
                 <span class="rating-value">{{ averageRating }}</span>
                 <span class="rating-out-of">/5</span>
@@ -36,16 +36,16 @@
 
           <section class="surface-card review-form-card">
             <div class="review-form__header">
-              <span class="section-kicker">Share your thoughts</span>
-              <h3>Rate this course</h3>
+              <span class="section-kicker">{{ t('shareThoughts') }}</span>
+              <h3>{{ t('rateThisCourse') }}</h3>
             </div>
 
             <label class="input-block">
-              <span>Your name</span>
+              <span>{{ t('yourName') }}</span>
               <input
                 v-model="reviewForm.authorName"
                 type="text"
-                placeholder="Enter your name"
+                :placeholder="t('namePlaceholder')"
               />
             </label>
 
@@ -62,16 +62,16 @@
             </div>
 
             <label class="input-block">
-              <span>Your review</span>
+              <span>{{ t('yourReview') }}</span>
               <textarea
                 v-model="reviewForm.text"
                 rows="4"
-                placeholder="Share what helped you in this course..."
+                :placeholder="t('courseReviewPlaceholder')"
               ></textarea>
             </label>
 
             <button class="primary-button post-review-btn" @click="submitReview">
-              <span>Post review</span>
+              <span>{{ t('postReview') }}</span>
             </button>
           </section>
 
@@ -113,18 +113,18 @@
                 <input
                   v-model="reviewReplies[review.id]"
                   type="text"
-                  placeholder="Write a reply..."
+                  :placeholder="t('writeReply')"
                 />
                 <button class="primary-button post-review-btn reply-post-btn" @click="submitReviewReply(review)">
-                  <span>Post</span>
+                  <span>{{ t('post') }}</span>
                 </button>
               </div>
             </article>
 
             <article v-if="!reviews.length" class="empty-card">
               <div class="empty-icon"><i class="fa-regular fa-star"></i></div>
-              <strong>No reviews yet.</strong>
-              <p>Be the first to rate this course.</p>
+              <strong>{{ t('noReviewsShort') }}</strong>
+              <p>{{ t('firstToRate') }}</p>
             </article>
           </section>
         </section>
@@ -134,6 +134,7 @@
 </template>
 
 <script>
+import { translate } from '@/services/i18n';
 import { IonContent, IonPage } from '@ionic/vue';
 import { useRoute } from 'vue-router';
 import { ref, computed, onMounted } from 'vue';
@@ -177,7 +178,7 @@ export default {
         reviews.value = r || [];
         reviewForm.value.authorName = u?.name || '';
       } catch (e) {
-        console.error('Failed to load reviews', e);
+        console.error(translate('failedLoadReviews'), e);
       }
     });
 
@@ -191,7 +192,7 @@ export default {
         const review = await createReview({
           courseId: course.value?.id || props.id,
           author_id: user.value?.id || '',
-          authorName: reviewForm.value.authorName || user.value?.name || 'Student',
+          authorName: reviewForm.value.authorName || user.value?.name || translate('student'),
           avatar: user.value?.avatar || '',
           rating: reviewForm.value.rating,
           text: reviewForm.value.text.trim(),
@@ -200,7 +201,7 @@ export default {
         reviewForm.value.text = '';
         reviewForm.value.rating = 5;
       } catch (e) {
-        console.error('Failed to submit review', e);
+        console.error(translate('failedSubmitReview'), e);
       }
     };
 
@@ -209,7 +210,7 @@ export default {
         const updated = await likeReview(review.id);
         reviews.value = reviews.value.map((item) => (item.id === updated.id ? updated : item));
       } catch (e) {
-        console.error('Failed to like review', e);
+        console.error(translate('failedLikeReview'), e);
       }
     };
 
@@ -221,7 +222,7 @@ export default {
         reviews.value = reviews.value.map((item) => (item.id === updated.id ? updated : item));
         reviewReplies.value[review.id] = '';
       } catch (e) {
-        console.error('Failed to submit reply', e);
+        console.error(translate('failedSubmitReply'), e);
       }
     };
 

@@ -10,10 +10,10 @@
     >
       <span class="app-toast__icon"><i :class="icon"></i></span>
       <div class="app-toast__body">
-        <strong>{{ title }}</strong>
+        <strong>{{ t(title) }}</strong>
         <span>{{ state.message }}</span>
       </div>
-      <button class="app-toast__close" type="button" aria-label="Dismiss notification" @click="hideToast">
+      <button class="app-toast__close" type="button" :aria-label="t('closeNotification')" @click="hideToast">
         <i class="fa-solid fa-xmark"></i>
       </button>
       <span
@@ -29,10 +29,10 @@ import { computed } from 'vue';
 import { getToastState, hideToast } from '@/services/toast';
 
 const TONES = {
-  success: { icon: 'fa-solid fa-circle-check', title: 'Done' },
-  error: { icon: 'fa-solid fa-circle-exclamation', title: 'Something went wrong' },
-  warning: { icon: 'fa-solid fa-triangle-exclamation', title: 'Heads up' },
-  info: { icon: 'fa-solid fa-circle-info', title: 'Notice' },
+  success: { icon: 'fa-solid fa-circle-check', title: 'toastDone' },
+  error: { icon: 'fa-solid fa-circle-exclamation', title: 'toastError' },
+  warning: { icon: 'fa-solid fa-triangle-exclamation', title: 'toastWarning' },
+  info: { icon: 'fa-solid fa-circle-info', title: 'toastInfo' },
 };
 
 export default {

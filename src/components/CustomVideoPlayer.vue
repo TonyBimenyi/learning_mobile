@@ -24,9 +24,9 @@
     <!-- Error State Overlay -->
     <div v-if="hasError" class="custom-video-player__error-overlay" @click.stop>
       <i class="fa-solid fa-triangle-exclamation"></i>
-      <span>Video could not be played</span>
+      <span>{{ t('videoUnavailable') }}</span>
       <button class="ghost-button error-retry-btn" type="button" @click="retryLoading">
-        <i class="fa-solid fa-rotate-right"></i> Retry
+        <i class="fa-solid fa-rotate-right"></i> {{ t('retry') }}
       </button>
     </div>
 
@@ -37,7 +37,7 @@
       @click.stop
     >
       <div class="custom-video-player__top-left">
-        <button class="control-icon control-icon--ghost" type="button" aria-label="Mute toggle" @click="toggleMute">
+        <button class="control-icon control-icon--ghost" type="button" :aria-label="t('muteToggle')" @click="toggleMute">
           <i :class="isMuted ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high'"></i>
         </button>
 
@@ -45,8 +45,8 @@
           class="control-icon control-icon--ghost download-action-btn"
           :class="{ 'is-downloading': isDownloading, 'is-downloaded': isDownloaded }"
           type="button"
-          :aria-label="isDownloaded ? 'Remove offline download' : 'Download lesson to watch offline'"
-          :title="isDownloaded ? 'Available offline — tap to remove' : 'Download lesson to watch offline'"
+          :aria-label="isDownloaded ? t('removeOfflineDownload') : t('downloadLessonOffline')"
+          :title="isDownloaded ? t('removeOfflineTip') : t('downloadLessonOffline')"
           @click.stop="$emit('download-click')"
         >
           <span v-if="isDownloading" class="download-spinner-wrap">
@@ -64,13 +64,13 @@
       </div>
 
       <div class="custom-video-player__top-actions">
-        <button class="control-icon control-icon--ghost" type="button" aria-label="Cast to TV" @click="toggleCastMode">
+        <button class="control-icon control-icon--ghost" type="button" :aria-label="t('castToTv')" @click="toggleCastMode">
           <i class="fa-solid fa-tv"></i>
         </button>
-        <button class="control-icon control-icon--ghost" type="button" aria-label="Captions" @click="toggleCaptions">
+        <button class="control-icon control-icon--ghost" type="button" :aria-label="t('captions')" @click="toggleCaptions">
           <span>CC</span>
         </button>
-        <button class="control-icon control-icon--ghost" type="button" aria-label="Settings" @click="toggleSettings">
+        <button class="control-icon control-icon--ghost" type="button" :aria-label="t('settings')" @click="toggleSettings">
           <i class="fa-solid fa-gear"></i>
         </button>
       </div>
@@ -124,7 +124,7 @@
       :class="{ 'is-hidden': isPlaying && !controlsVisible && !isBuffering && !(isLoading && isPlaying) }"
       @click.stop
     >
-      <button class="transport-button" type="button" aria-label="Rewind 10 seconds" @click="seekRelative(-10)">
+      <button class="transport-button" type="button" :aria-label="t('rewind10')" @click="seekRelative(-10)">
         <i class="fa-solid fa-rotate-left"></i>
         <span class="transport-subtext">10</span>
       </button>
@@ -132,13 +132,13 @@
         class="transport-button transport-button--primary"
         :class="{ 'is-loading': isBuffering || (isLoading && isPlaying) }"
         type="button"
-        :aria-label="isPlaying ? 'Pause' : 'Play'"
+        :aria-label="isPlaying ? t('pause') : t('play')"
         @click="togglePlay"
       >
         <i v-if="isBuffering || (isLoading && isPlaying)" class="fa-solid fa-circle-notch fa-spin transport-loader-icon"></i>
         <i v-else :class="isPlaying ? 'fa-solid fa-pause' : 'fa-solid fa-play'"></i>
       </button>
-      <button class="transport-button" type="button" aria-label="Forward 10 seconds" @click="seekRelative(10)">
+      <button class="transport-button" type="button" :aria-label="t('forward10')" @click="seekRelative(10)">
         <i class="fa-solid fa-rotate-right"></i>
         <span class="transport-subtext">10</span>
       </button>
@@ -161,7 +161,7 @@
         <button
           class="control-icon control-icon--bottom"
           type="button"
-          :aria-label="isFullscreen || isFullscreenRotated ? 'Exit Fullscreen' : 'Fullscreen'"
+          :aria-label="isFullscreen || isFullscreenRotated ? t('exitFullscreen') : t('fullscreen')"
           @click="toggleFullscreen"
         >
           <i :class="(isFullscreen || isFullscreenRotated) ? 'fa-solid fa-compress' : 'fa-solid fa-expand'"></i>
@@ -180,7 +180,7 @@
         <div
           class="scrubber-track scrubber-track--buffered"
           :style="{ width: `${bufferedPercent}%` }"
-          title="Loaded buffer progress"
+          :title="t('loadedBuffer')"
         ></div>
 
         <!-- The Brand Line: Played Progress -->
@@ -198,7 +198,7 @@
           min="0"
           :max="Math.max(duration, 1)"
           step="0.1"
-          aria-label="Seek video position"
+          :aria-label="t('seekPosition')"
           @input="handleProgressInput"
           @change="handleProgressChange"
           @mousedown="isDragging = true"

@@ -20,7 +20,7 @@
   <!-- Exit Prompt Toast -->
   <transition name="toast-fade">
     <div v-if="showExitToast" class="exit-toast">
-      <span>Press back again to exit</span>
+      <span>{{ t('pressBackAgain') }}</span>
     </div>
   </transition>
 

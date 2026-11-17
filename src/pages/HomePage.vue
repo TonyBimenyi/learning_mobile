@@ -8,16 +8,16 @@
             <div class="home-hero__greeting">
               <div class="home-hero__tag">
                 <span class="pulse-dot"></span>
-                <span>Twige Academy</span>
+                <span>{{ t('appName') }}</span>
               </div>
               <h1>{{ greetingText }}, {{ firstName }}</h1>
               <p>{{ heroDescription }}</p>
             </div>
             <div class="home-hero__actions">
-              <button class="hero-icon-btn" type="button" aria-label="Notifications" @click="goToProfile">
+              <button class="hero-icon-btn" type="button" :aria-label="t('notifications')" @click="goToProfile">
                 <i class="fa-regular fa-bell"></i>
               </button>
-              <button class="hero-avatar-btn" type="button" aria-label="Profile" @click="goToProfile">
+              <button class="hero-avatar-btn" type="button" :aria-label="t('navProfile')" @click="goToProfile">
                 {{ userInitial }}
               </button>
             </div>
@@ -30,12 +30,12 @@
               <input
                 v-model="searchQuery"
                 type="text"
-                placeholder="Search courses, skills, or topics..."
+                :placeholder="t('searchHomePlaceholder')"
                 @keyup.enter="goToDiscover"
               />
             </label>
             <button class="hero-search-btn" type="button" @click="goToDiscover">
-              <span>Explore</span>
+              <span>{{ t('navExplore') }}</span>
               <i class="fa-solid fa-arrow-right"></i>
             </button>
           </div>
@@ -45,21 +45,21 @@
             <article class="hero-stat-card">
               <div class="hero-stat-card__icon"><i class="fa-solid fa-book-open"></i></div>
               <div class="hero-stat-card__content">
-                <small>Courses</small>
+                <small>{{ t('courses') }}</small>
                 <strong>{{ courses.length }}</strong>
               </div>
             </article>
             <article class="hero-stat-card">
               <div class="hero-stat-card__icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
               <div class="hero-stat-card__content">
-                <small>In Progress</small>
+                <small>{{ t('inProgress') }}</small>
                 <strong>{{ continueWatching.length }}</strong>
               </div>
             </article>
             <article class="hero-stat-card">
               <div class="hero-stat-card__icon"><i class="fa-solid fa-shapes"></i></div>
               <div class="hero-stat-card__content">
-                <small>Tracks</small>
+                <small>{{ t('tracks') }}</small>
                 <strong>{{ categories.length }}</strong>
               </div>
             </article>
@@ -71,12 +71,12 @@
           <div class="section-heading">
             <div>
               <p class="section-kicker">
-                <i class="fa-solid fa-bolt"></i> Continue Learning
+                <i class="fa-solid fa-bolt"></i> {{ t('continueLearning') }}
               </p>
-              <h3>Resume your flow</h3>
+              <h3>{{ t('resumeFlow') }}</h3>
             </div>
             <RouterLink to="/my-learning" class="text-link">
-              <span>My Library</span>
+              <span>{{ t('myLibrary') }}</span>
               <i class="fa-solid fa-chevron-right"></i>
             </RouterLink>
           </div>
@@ -112,8 +112,8 @@
           </div>
           <article v-else class="empty-card">
             <div class="empty-icon"><i class="fa-regular fa-compass"></i></div>
-            <strong>No active lessons yet</strong>
-            <p>Pick any course below to begin watching. Your progress will automatically save right here.</p>
+            <strong>{{ t('noActiveLessons') }}</strong>
+            <p>{{ t('noActiveLessonsHint') }}</p>
           </article>
         </section>
 
@@ -122,12 +122,12 @@
           <div class="section-heading">
             <div>
               <p class="section-kicker">
-                <i class="fa-solid fa-layer-group"></i> Explore Tracks
+                <i class="fa-solid fa-layer-group"></i> {{ t('exploreTracks') }}
               </p>
-              <h3>Browse by subject</h3>
+              <h3>{{ t('browseBySubject') }}</h3>
             </div>
             <RouterLink to="/discover" class="text-link">
-              <span>View all</span>
+              <span>{{ t('viewAll') }}</span>
               <i class="fa-solid fa-chevron-right"></i>
             </RouterLink>
           </div>
@@ -146,7 +146,7 @@
               </div>
               <div class="category-rail-card__info">
                 <strong>{{ category.name }}</strong>
-                <small>{{ category.courseCount }} {{ category.courseCount === 1 ? 'course' : 'courses' }}</small>
+                <small>{{ category.courseCount }} {{ category.courseCount === 1 ? translate('courseSingular') : translate('courses') }}</small>
               </div>
             </button>
           </div>
@@ -157,9 +157,9 @@
           <div class="section-heading">
             <div>
               <p class="section-kicker">
-                <i class="fa-solid fa-video"></i> Quick Lessons
+                <i class="fa-solid fa-video"></i> {{ t('quickLessons') }}
               </p>
-              <h3>Bite-sized previews</h3>
+              <h3>{{ t('biteSizedPreviews') }}</h3>
             </div>
           </div>
 
@@ -177,7 +177,7 @@
                     <i class="fa-solid fa-play"></i>
                   </span>
                   <span class="lesson-preview-card__duration">
-                    <i class="fa-regular fa-clock"></i> {{ lesson.duration || 'Video' }}
+                    <i class="fa-regular fa-clock"></i> {{ lesson.duration || translate('video') }}
                   </span>
                 </div>
               </div>
@@ -194,12 +194,12 @@
           <div class="section-heading">
             <div>
               <p class="section-kicker">
-                <i class="fa-solid fa-award"></i> Featured Learning
+                <i class="fa-solid fa-award"></i> {{ t('featuredLearning') }}
               </p>
-              <h3>Top rated courses</h3>
+              <h3>{{ t('topRatedCourses') }}</h3>
             </div>
             <RouterLink to="/discover" class="text-link">
-              <span>See catalog</span>
+              <span>{{ t('seeCatalog') }}</span>
               <i class="fa-solid fa-chevron-right"></i>
             </RouterLink>
           </div>
@@ -238,7 +238,7 @@
               </div>
               <div class="feature-course-card__body">
                 <div class="feature-course-card__meta">
-                  <span class="course-level-badge">{{ course.level || 'All levels' }}</span>
+                  <span class="course-level-badge">{{ course.level || translate('allLevels') }}</span>
                   <span class="rating-chip">
                     <i class="fa-solid fa-star"></i> {{ course.rating || '4.8' }}
                   </span>
@@ -247,11 +247,11 @@
                 <p>{{ shortDescription(course) }}</p>
                 <div class="feature-course-card__footer">
                   <div class="feature-course-card__price-group">
-                    <small>Full Course</small>
+                    <small>{{ t('fullCourse') }}</small>
                     <strong>{{ formatCurrency(course.price) }}</strong>
                   </div>
                   <button class="primary-button feature-course-card__btn" type="button">
-                    <span>Enroll Now</span>
+                    <span>{{ t('enrollNow') }}</span>
                     <i class="fa-solid fa-arrow-right"></i>
                   </button>
                 </div>
@@ -267,6 +267,7 @@
 </template>
 
 <script>
+import { translate } from '@/services/i18n';
 import { IonContent, IonPage } from '@ionic/vue';
 import BottomNav from '@/components/BottomNav.vue';
 import CardSkeleton from '@/components/CardSkeleton.vue';
@@ -302,19 +303,19 @@ export default {
   },
   computed: {
     firstName() {
-      return (this.user?.name || 'Learner').split(' ')[0];
+      return (this.user?.name || translate('learner')).split(' ')[0];
     },
     userInitial() {
       return (this.firstName || 'L').charAt(0).toUpperCase();
     },
     greetingText() {
       const hour = new Date().getHours();
-      if (hour < 12) return 'Good morning';
-      if (hour < 18) return 'Good afternoon';
-      return 'Good evening';
+      if (hour < 12) return translate('goodMorning');
+      if (hour < 18) return translate('goodAfternoon');
+      return translate('goodEvening');
     },
     heroDescription() {
-      return this.homepageContent?.heroDescription || 'Discover practical lessons, resume instantly, and build high-demand skills.';
+      return this.homepageContent?.heroDescription || translate('heroDescription2');
     },
     categories() {
       return getCategories(this.courses);
@@ -364,7 +365,7 @@ export default {
     shortDescription(course) {
       const text = String(course.longDescription || course.description || '').trim();
       if (!text) {
-        return 'Build practical skills with an expert-led Twige Academy path.';
+        return translate('heroDescription1');
       }
       return text.length > 82 ? `${text.slice(0, 82)}...` : text;
     },

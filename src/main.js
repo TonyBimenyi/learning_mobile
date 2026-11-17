@@ -31,6 +31,7 @@ import App from './App.vue';
 import router from './router';
 import './theme/global.css';
 import { initTheme } from './services/theme';
+import { translate } from './services/i18n';
 
 // ─── Server Base URL ─────────────────────────────────────────────────────────
 // Driven by VITE_API_BASE so the .env files are actually used.
@@ -42,5 +43,9 @@ window.__APP_BASE_URL__ = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '
 
 initTheme();
 
-createApp(App).use(IonicVue, { mode: 'ios' }).use(router).mount('#app');
+const app = createApp(App);
+// Make both t('key') and translate('key') available in every template.
+app.config.globalProperties.t = translate;
+app.config.globalProperties.translate = translate;
+app.use(IonicVue, { mode: 'ios' }).use(router).mount('#app');
 

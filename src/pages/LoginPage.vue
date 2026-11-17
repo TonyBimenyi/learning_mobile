@@ -7,19 +7,19 @@
           <div class="auth-logo-badge">
             <i class="fa-solid fa-graduation-cap"></i>
           </div>
-          <span class="pill pill--brand">Twige Academy</span>
-          <h1>Welcome back</h1>
-          <p>Sign in to sync your course progress, certificates, and personalized learning dashboard.</p>
+          <span class="pill pill--brand">{{ t('appName') }}</span>
+          <h1>{{ t('greeting') }}</h1>
+          <p>{{ t('loginSubtitle') }}</p>
           
           <div class="auth-hero__highlights">
             <span class="highlight-chip">
-              <i class="fa-solid fa-circle-play"></i> Full HD Lessons
+              <i class="fa-solid fa-circle-play"></i> {{ t('fullHDLessons') }}
             </span>
             <span class="highlight-chip">
               <i class="fa-solid fa-language"></i> EN / FR / RN
             </span>
             <span class="highlight-chip">
-              <i class="fa-solid fa-shield-halved"></i> Secure Access
+              <i class="fa-solid fa-shield-halved"></i> {{ t('secureAccess') }}
             </span>
           </div>
         </section>
@@ -29,21 +29,21 @@
           <div class="auth-card__header">
             <div>
               <p class="section-kicker">
-                <i class="fa-solid fa-lock"></i> Account Login
+                <i class="fa-solid fa-lock"></i> {{ t('accountLogin') }}
               </p>
-              <h3>Sign in to continue</h3>
+              <h3>{{ t('signInContinue') }}</h3>
             </div>
           </div>
 
           <form class="auth-form" @submit.prevent="submitLogin">
             <label class="input-block">
-              <span>Email address</span>
+              <span>{{ t('emailAddress') }}</span>
               <div class="input-field-wrap">
                 <i class="fa-regular fa-envelope input-icon"></i>
                 <input
                   v-model="form.email"
                   type="email"
-                  placeholder="name@example.com"
+                  :placeholder="t('emailPlaceholder')"
                   autocomplete="email"
                   required
                 />
@@ -52,21 +52,21 @@
 
             <label class="input-block">
               <div class="password-label-row">
-                <span>Password</span>
+                <span>{{ t('password') }}</span>
               </div>
               <div class="input-field-wrap">
                 <i class="fa-solid fa-key input-icon"></i>
                 <input
                   v-model="form.password"
                   :type="showPassword ? 'text' : 'password'"
-                  placeholder="Enter your password"
+                  :placeholder="t('passwordPlaceholder')"
                   autocomplete="current-password"
                   required
                 />
                 <button
                   class="password-toggle-btn"
                   type="button"
-                  aria-label="Toggle password visibility"
+                  :aria-label="t('togglePasswordVisibility')"
                   @click="showPassword = !showPassword"
                 >
                   <i :class="showPassword ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye'"></i>
@@ -93,7 +93,7 @@
           <div class="auth-card__footer">
             <RouterLink to="/home" class="text-link">
               <i class="fa-solid fa-arrow-left"></i>
-              <span>Back to explore courses</span>
+              <span>{{ t('backToExplore') }}</span>
             </RouterLink>
           </div>
         </section>
@@ -103,6 +103,7 @@
 </template>
 
 <script>
+import { translate } from '@/services/i18n';
 import { IonContent, IonPage } from '@ionic/vue';
 import { loginUser } from '@/services/api';
 
@@ -121,20 +122,20 @@ export default {
       showPassword: false,
       isSubmitting: false,
       isError: false,
-      message: 'Enter your Twige Academy credentials to access your account.',
+      message: translate('loginHeroSubtitle'),
     };
   },
   methods: {
     async submitLogin() {
       if (!this.form.email.trim() || !this.form.password) {
         this.isError = true;
-        this.message = 'Please provide both email and password.';
+        this.message = translate('loginRequired');
         return;
       }
 
       this.isSubmitting = true;
       this.isError = false;
-      this.message = 'Verifying credentials...';
+      this.message = translate('verifying');
 
       try {
         await loginUser({
@@ -145,7 +146,7 @@ export default {
         this.$router.replace(redirect);
       } catch (error) {
         this.isError = true;
-        this.message = error.message || 'Login failed. Please check your credentials.';
+        this.message = error.message || translate('loginFailed');
       } finally {
         this.isSubmitting = false;
       }

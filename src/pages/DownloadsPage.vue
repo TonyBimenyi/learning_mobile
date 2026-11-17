@@ -4,19 +4,19 @@
       <div class="screen-shell">
         <!-- Top Navigation Bar -->
         <header class="page-top-bar">
-          <button class="back-btn" type="button" aria-label="Go back" @click="$router.back()">
+          <button class="back-btn" type="button" :aria-label="t('goBack')" @click="$router.back()">
             <i class="fa-solid fa-arrow-left"></i>
           </button>
           <div class="top-bar-title">
-            <h2>Downloads</h2>
+            <h2>{{ t('downloads') }}</h2>
             <span class="sub-caption">{{ downloads.length }} {{ downloads.length === 1 ? 'lesson' : 'lessons' }} &bull; {{ totalStorageUsed }}</span>
           </div>
           <button
             v-if="downloads.length"
             class="ghost-button icon-only-btn clear-all-icon-btn"
             type="button"
-            title="Clear all downloads"
-            aria-label="Clear all downloads"
+            :title="t('clearAllDownloads')"
+            :aria-label="t('clearAllDownloads')"
             @click="handleClearAll"
           >
             <i class="fa-solid fa-trash-can"></i>
@@ -32,27 +32,27 @@
             <div class="vault-heading">
               <div class="vault-tags">
                 <span class="secure-pill">
-                  <i class="fa-solid fa-shield-halved"></i> App Sandbox Protected
+                  <i class="fa-solid fa-shield-halved"></i> {{ t('appSandboxProtected') }}
                 </span>
                 <span class="usage-pill">{{ totalStorageUsed }}</span>
               </div>
-              <h3>Offline Video Vault</h3>
-              <p>Stored privately inside the app sandbox for offline watching without cellular data.</p>
+              <h3>{{ t('offlineVideoVault') }}</h3>
+              <p>{{ t('offlineVaultDesc') }}</p>
             </div>
           </div>
 
           <div v-if="downloads.length" class="vault-stats-row">
             <div class="vault-stat">
-              <small>Offline Lessons</small>
+              <small>{{ t('offlineLessons') }}</small>
               <strong>{{ downloads.length }}</strong>
             </div>
             <div class="vault-stat">
-              <small>Storage Used</small>
+              <small>{{ t('storageUsed') }}</small>
               <strong>{{ totalStorageUsed }}</strong>
             </div>
             <div class="vault-stat">
-              <small>Network Needed</small>
-              <strong class="text-emerald">0 MB (Offline)</strong>
+              <small>{{ t('networkNeeded') }}</small>
+              <strong class="text-emerald">{{ t('zeroMBOffline') }}</strong>
             </div>
           </div>
         </section>
@@ -71,7 +71,7 @@
                   <i class="fa-solid fa-play"></i>
                 </div>
                 <span class="offline-pill-badge">
-                  <i class="fa-solid fa-bolt"></i> Offline
+                  <i class="fa-solid fa-bolt"></i> {{ t('offline') }}
                 </span>
               </div>
 
@@ -96,13 +96,13 @@
                     @click="playOfflineLesson(item)"
                   >
                     <i class="fa-solid fa-circle-play"></i>
-                    <span>Watch Offline</span>
+                    <span>{{ t('watchOffline') }}</span>
                   </button>
                   <button
                     class="ghost-button delete-btn"
                     type="button"
-                    title="Remove from downloads"
-                    aria-label="Remove download"
+                    :title="t('removeFromDownloads')"
+                    :aria-label="t('removeOfflineDownload')"
                     @click="handleDelete(item.lessonId)"
                   >
                     <i class="fa-solid fa-trash-can"></i>
@@ -117,18 +117,18 @@
             <div class="empty-icon-circle">
               <i class="fa-solid fa-cloud-arrow-down"></i>
             </div>
-            <h3>No downloaded videos yet</h3>
+            <h3>{{ t('noDownloads') }}</h3>
             <p>
-              When you download lessons, they will be saved here in your offline vault so you can watch them without internet.
+              {{ t('noDownloadsHint') }}
             </p>
             <div class="empty-actions">
               <button class="primary-button" type="button" @click="$router.push('/discover')">
                 <i class="fa-solid fa-compass"></i>
-                <span>Explore Courses</span>
+                <span>{{ t('exploreCourses') }}</span>
               </button>
               <button class="ghost-button" type="button" @click="$router.push('/my-learning')">
                 <i class="fa-solid fa-book-open"></i>
-                <span>My Learning</span>
+                <span>{{ t('navMyLearning') }}</span>
               </button>
             </div>
           </article>
@@ -141,6 +141,7 @@
 </template>
 
 <script>
+import { translate } from '@/services/i18n';
 import { IonContent, IonPage } from '@ionic/vue';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -173,7 +174,7 @@ export default {
         downloads.value = dList || [];
         totalStorageUsed.value = usage.totalFormatted || '0 B';
       } catch (err) {
-        console.warn('Could not load offline downloads', err);
+        console.warn(translate('loadDownloadsError'), err);
       }
     };
 

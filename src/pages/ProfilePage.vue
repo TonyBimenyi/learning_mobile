@@ -4,7 +4,7 @@
       <div class="screen-shell">
         <section v-if="isLoading" class="surface-card profile-loading-card">
           <div class="loading-spinner"></div>
-          <strong>Loading your profile...</strong>
+          <strong>{{ t('loadingProfile') }}</strong>
         </section>
 
         <template v-else>
@@ -18,7 +18,7 @@
                 </div>
                 <div class="identity-text">
                   <span class="pill pill--glass">
-                    <i class="fa-solid fa-circle-check"></i> Connected Account
+                    <i class="fa-solid fa-circle-check"></i> {{ t('connectedAccount') }}
                   </span>
                   <h1>{{ profileName }}</h1>
                   <p>{{ user?.email }}</p>
@@ -27,7 +27,7 @@
 
               <button class="profile-logout-btn" type="button" @click="logout">
                 <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                <span>Logout</span>
+                <span>{{ t('logout') }}</span>
               </button>
             </div>
 
@@ -50,7 +50,7 @@
                 <i class="fa-solid fa-book-open"></i>
               </div>
               <div>
-                <small>Enrolled</small>
+                <small>{{ t('enrolled') }}</small>
                 <strong>{{ enrollments.length }}</strong>
               </div>
             </article>
@@ -60,7 +60,7 @@
                 <i class="fa-solid fa-clock-rotate-left"></i>
               </div>
               <div>
-                <small>Resumes</small>
+                <small>{{ t('resumes') }}</small>
                 <strong>{{ continueWatchingCount }}</strong>
               </div>
             </article>
@@ -75,7 +75,7 @@
                 <i class="fa-solid fa-cloud-arrow-down"></i>
               </div>
               <div>
-                <small>Downloads</small>
+                <small>{{ t('downloads') }}</small>
                 <strong>{{ downloadsCount }}</strong>
               </div>
             </article>
@@ -85,7 +85,7 @@
                 <i class="fa-solid fa-language"></i>
               </div>
               <div>
-                <small>Language</small>
+                <small>{{ t('language') }}</small>
                 <strong>{{ currentLanguageLabel }}</strong>
               </div>
             </article>
@@ -105,11 +105,11 @@
               <div class="downloads-entry-text">
                 <div class="downloads-entry-tags">
                   <span class="secure-badge">
-                    <i class="fa-solid fa-shield-halved"></i> Sandboxed Vault
+                    <i class="fa-solid fa-shield-halved"></i> {{ t('sandboxedVault') }}
                   </span>
                   <span class="downloads-size-badge">{{ totalStorageFormatted }}</span>
                 </div>
-                <h3>Offline Downloads</h3>
+                <h3>{{ t('offlineDownloads') }}</h3>
                 <p>
                   {{ downloadsCount }} {{ downloadsCount === 1 ? 'video lesson' : 'video lessons' }} stored inside app
                 </p>
@@ -127,13 +127,13 @@
                 <p class="section-kicker">
                   <i class="fa-solid fa-user-pen"></i> {{ t('account') }}
                 </p>
-                <h3>Personal details</h3>
+                <h3>{{ t('personalDetails') }}</h3>
               </div>
             </div>
 
             <div class="profile-inputs-grid">
               <label class="input-block">
-                <span>WhatsApp Number</span>
+                <span>{{ t('whatsappNumber') }}</span>
                 <div class="input-field-wrap">
                   <i class="fa-brands fa-whatsapp input-icon"></i>
                   <input v-model="form.whatsapp" type="text" placeholder="+257 ..." />
@@ -141,10 +141,10 @@
               </label>
 
               <label class="input-block">
-                <span>Specialty / Field</span>
+                <span>{{ t('specialtyField') }}</span>
                 <div class="input-field-wrap">
                   <i class="fa-solid fa-briefcase input-icon"></i>
-                  <input v-model="form.specialty" type="text" placeholder="e.g. Web Development, Design" />
+                  <input v-model="form.specialty" type="text" :placeholder="t('specialtyPlaceholder')" />
                 </div>
               </label>
             </div>
@@ -155,7 +155,7 @@
                 v-model="form.bio"
                 class="modern-textarea"
                 rows="3"
-                placeholder="Share a short bio or skills you want to learn..."
+                :placeholder="t('bioPlaceholder')"
               ></textarea>
             </label>
 
@@ -175,7 +175,7 @@
                 <p class="section-kicker">
                   <i class="fa-solid fa-sliders"></i> {{ t('settings') }}
                 </p>
-                <h3>App preferences</h3>
+                <h3>{{ t('appPreferences') }}</h3>
               </div>
             </div>
 
@@ -196,7 +196,7 @@
                   @click="changeTheme('light')"
                 >
                   <i class="fa-solid fa-sun"></i>
-                  <span>Light</span>
+                  <span>{{ t('light') }}</span>
                 </button>
                 <button
                   class="theme-segment-btn"
@@ -205,7 +205,7 @@
                   @click="changeTheme('dark')"
                 >
                   <i class="fa-solid fa-moon"></i>
-                  <span>Dark</span>
+                  <span>{{ t('dark') }}</span>
                 </button>
                 <button
                   class="theme-segment-btn"
@@ -214,13 +214,13 @@
                   @click="changeTheme('system')"
                 >
                   <i class="fa-solid fa-circle-half-stroke"></i>
-                  <span>System</span>
+                  <span>{{ t('system') }}</span>
                 </button>
               </div>
             </div>
 
             <label class="input-block">
-              <span>Display Language</span>
+              <span>{{ t('displayLanguage') }}</span>
               <div class="select-field-wrap">
                 <i class="fa-solid fa-globe input-icon"></i>
                 <select v-model="settings.language" @change="updateSettingsValue('language', settings.language)">
@@ -239,8 +239,8 @@
             <div class="toggles-list">
               <label class="modern-toggle-row">
                 <div class="toggle-text">
-                  <strong>Autoplay video previews</strong>
-                  <small>Play muted lesson previews while scrolling</small>
+                  <strong>{{ t('autoplayPreviews') }}</strong>
+                  <small>{{ t('autoplayHint') }}</small>
                 </div>
                 <div class="switch">
                   <input
@@ -255,7 +255,7 @@
               <label class="modern-toggle-row">
                 <div class="toggle-text">
                   <strong>Push notifications & reminders</strong>
-                  <small>Receive updates when new lessons are added</small>
+                  <small>{{ t('notifyNewLessons') }}</small>
                 </div>
                 <div class="switch">
                   <input
@@ -269,8 +269,8 @@
 
               <label class="modern-toggle-row">
                 <div class="toggle-text">
-                  <strong>Wi-Fi only video downloads</strong>
-                  <small>Save cellular data for offline study</small>
+                  <strong>{{ t('wifiOnlyDownloads') }}</strong>
+                  <small>{{ t('wifiOnlyHint') }}</small>
                 </div>
                 <div class="switch">
                   <input
@@ -289,7 +289,7 @@
             <div class="section-heading">
               <div>
                 <p class="section-kicker">
-                  <i class="fa-solid fa-shield-halved"></i> Security
+                  <i class="fa-solid fa-shield-halved"></i> {{ t('security') }}
                 </p>
                 <h3>Account & Password</h3>
               </div>
@@ -308,17 +308,17 @@
                 <i class="fa-solid fa-circle-check text-emerald"></i>
                 <div>
                   <strong>Session & Account Protected</strong>
-                  <small>Twige tokenized session is secure</small>
+                  <small>{{ t('secureSession') }}</small>
                 </div>
               </div>
               <span class="security-badge">
-                <i class="fa-solid fa-lock"></i> Protected
+                <i class="fa-solid fa-lock"></i> {{ t('protected') }}
               </span>
             </div>
 
             <div v-else class="password-change-form">
               <label class="input-block">
-                <span>Current Password</span>
+                <span>{{ t('currentPassword') }}</span>
                 <div class="input-field-wrap">
                   <i class="fa-solid fa-lock input-icon"></i>
                   <input v-model="pwdForm.currentPassword" type="password" placeholder="••••••••" />
@@ -326,17 +326,17 @@
               </label>
               <div class="profile-inputs-grid">
                 <label class="input-block">
-                  <span>New Password</span>
+                  <span>{{ t('newPassword') }}</span>
                   <div class="input-field-wrap">
                     <i class="fa-solid fa-key input-icon"></i>
-                    <input v-model="pwdForm.newPassword" type="password" placeholder="Min. 6 chars" />
+                    <input v-model="pwdForm.newPassword" type="password" :placeholder="t('minChars')" />
                   </div>
                 </label>
                 <label class="input-block">
-                  <span>Confirm New Password</span>
+                  <span>{{ t('confirmNewPassword') }}</span>
                   <div class="input-field-wrap">
                     <i class="fa-solid fa-check-double input-icon"></i>
-                    <input v-model="pwdForm.confirmPassword" type="password" placeholder="Repeat new password" />
+                    <input v-model="pwdForm.confirmPassword" type="password" :placeholder="t('repeatPassword')" />
                   </div>
                 </label>
               </div>
@@ -346,7 +346,7 @@
                 </span>
                 <button class="primary-button pwd-save-btn" type="button" @click="handlePasswordUpdate">
                   <i class="fa-solid fa-shield-check"></i>
-                  <span>Update Password</span>
+                  <span>{{ t('updatePassword') }}</span>
                 </button>
               </div>
             </div>
@@ -357,7 +357,7 @@
             <div class="section-heading">
               <div>
                 <p class="section-kicker">
-                  <i class="fa-solid fa-headset"></i> Support
+                  <i class="fa-solid fa-headset"></i> {{ t('support') }}
                 </p>
                 <h3>Help & Community</h3>
               </div>
@@ -374,8 +374,8 @@
                   <i class="fa-brands fa-whatsapp"></i>
                 </div>
                 <div class="support-action-text">
-                  <strong>WhatsApp Advisor</strong>
-                  <small>Instant student support</small>
+                  <strong>{{ t('whatsappAdvisor') }}</strong>
+                  <small>{{ t('instantSupport') }}</small>
                 </div>
                 <i class="fa-solid fa-arrow-up-right-from-square support-ext-icon"></i>
               </a>
@@ -385,7 +385,7 @@
                   <i class="fa-solid fa-share-nodes"></i>
                 </div>
                 <div class="support-action-text">
-                  <strong>Share Twige</strong>
+                  <strong>{{ t('shareTwige') }}</strong>
                   <small>Invite classmates & friends</small>
                 </div>
                 <i class="fa-solid fa-chevron-right support-ext-icon"></i>
@@ -400,7 +400,7 @@
                 <p class="section-kicker">
                   <i class="fa-solid fa-gear"></i> Device & Storage
                 </p>
-                <h3>Maintenance</h3>
+                <h3>{{ t('maintenance') }}</h3>
               </div>
             </div>
 
@@ -431,10 +431,10 @@
           <footer class="profile-app-footer">
             <div class="app-brand-pill">
               <span class="brand-dot"></span>
-              <strong>Twige Mobile Learning</strong>
+              <strong>{{ t('appNameFull') }}</strong>
               <span>v1.3.0 &bull; {{ currentTheme === 'dark' ? 'Dark Edition' : 'Light Edition' }}</span>
             </div>
-            <p class="app-copyright">Empowering African learners with offline-first practical education.</p>
+            <p class="app-copyright">{{ t('appTagline') }}</p>
           </footer>
         </template>
 
@@ -445,6 +445,7 @@
 </template>
 
 <script>
+import { translate } from '@/services/i18n';
 import { IonContent, IonPage } from '@ionic/vue';
 import { onMounted, onUnmounted, ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
@@ -476,7 +477,7 @@ export default {
     const showPasswordFields = ref(false);
     const pwdForm = ref({ currentPassword: '', newPassword: '', confirmPassword: '' });
     const pwdFeedback = ref({ message: '', error: false });
-    const statusMessage = ref('Profile changes sync with your backend account.');
+    const statusMessage = ref(translate('profileSyncNote'));
     const downloadsCount = ref(0);
     const totalStorageFormatted = ref('0 B');
 
@@ -486,12 +487,12 @@ export default {
       user.value?.avatar || 'https://ui-avatars.com/api/?name=Twige&background=4f46e5&color=fff&size=200'
     );
 
-    const profileName = computed(() => user.value?.name || 'Twige Learner');
+    const profileName = computed(() => user.value?.name || translate('learner'));
     const approvalLabel = computed(() => user.value?.approvalStatus || 'approved');
     const continueWatchingCount = computed(() => getContinueWatchingList().length);
 
     const currentLanguageLabel = computed(() =>
-      languageOptions.find((option) => option.value === settings.value.language)?.label || 'English'
+      languageOptions.find((option) => option.value === settings.value.language)?.label || translate('englishLabel')
     );
 
     const themeIcon = computed(() => {
@@ -501,9 +502,9 @@ export default {
     });
 
     const activeThemeLabel = computed(() => {
-      if (currentTheme.value === 'dark') return 'Dark Mode Active';
-      if (currentTheme.value === 'light') return 'Light Mode Active';
-      return 'System Auto';
+      if (currentTheme.value === 'dark') return translate('darkModeActive');
+      if (currentTheme.value === 'light') return translate('lightModeActive');
+      return translate('systemAuto');
     });
 
     const changeTheme = (theme) => {
@@ -516,7 +517,7 @@ export default {
     const handlePasswordUpdate = async () => {
       pwdFeedback.value = { message: '', error: false };
       if (!pwdForm.value.newPassword) {
-        pwdFeedback.value = { message: 'Please enter a new password.', error: true };
+        pwdFeedback.value = { message: translate('enterNewPassword'), error: true };
         return;
       }
       if (pwdForm.value.newPassword.length < 6) {
@@ -524,7 +525,7 @@ export default {
         return;
       }
       if (pwdForm.value.newPassword !== pwdForm.value.confirmPassword) {
-        pwdFeedback.value = { message: 'Passwords do not match.', error: true };
+        pwdFeedback.value = { message: translate('passwordsMismatch'), error: true };
         return;
       }
 
@@ -538,7 +539,7 @@ export default {
           showPasswordFields.value = false;
         }, 1600);
       } catch (err) {
-        pwdFeedback.value = { message: err?.message || 'Could not update password.', error: true };
+        pwdFeedback.value = { message: err?.message || translate('passwordUpdateFailed'), error: true };
       }
     };
 
@@ -546,7 +547,7 @@ export default {
       if (confirm(`Are you sure you want to delete all offline videos and free up ${totalStorageFormatted.value}?`)) {
         await clearAllDownloads();
         await loadDownloadsData();
-        statusMessage.value = 'Offline videos removed from storage.';
+        statusMessage.value = translate('offlineRemoved');
       }
     };
 
@@ -569,13 +570,13 @@ export default {
 
     const whatsappSupportUrl = computed(() => {
       const phone = '25769000000';
-      const msg = encodeURIComponent(`Hello Twige Team, my account is ${user.value?.email || 'Student'}. I need help with my courses.`);
+      const msg = encodeURIComponent(`Hello Twige Team, my account is ${user.value?.email || translate('student')}. I need help with my courses.`);
       return `https://wa.me/${phone}?text=${msg}`;
     });
 
     const handleShareApp = async () => {
       const shareData = {
-        title: 'Twige Mobile Learning',
+        title: translate('appNameFull'),
         text: 'Learn practical tech and business skills on Twige with offline video downloads!',
         url: window.location.origin,
       };
@@ -604,7 +605,7 @@ export default {
         downloadsCount.value = dList?.length || 0;
         totalStorageFormatted.value = usage?.totalFormatted || '0 B';
       } catch (err) {
-        console.warn('Could not load offline downloads in profile', err);
+        console.warn(translate('loadDownloadsError'), err);
       }
     };
 
@@ -634,12 +635,12 @@ export default {
 
     const saveProfileChanges = async () => {
       if (!user.value?.id) {
-        statusMessage.value = 'No active backend session detected.';
+        statusMessage.value = translate('noSession');
         return;
       }
       try {
         user.value = await updateProfile(user.value.id, form.value);
-        statusMessage.value = 'Profile updated successfully.';
+        statusMessage.value = translate('profileUpdated');
       } catch (error) {
         statusMessage.value = error.message;
       }
@@ -647,17 +648,17 @@ export default {
 
     const toggleSetting = (key, event) => {
       settings.value = saveSettings({ [key]: event.target.checked });
-      statusMessage.value = 'Preference updated.';
+      statusMessage.value = translate('preferenceUpdated');
     };
 
     const updateSettingsValue = (key, value) => {
       settings.value = saveSettings({ [key]: value });
-      statusMessage.value = 'Language preference updated.';
+      statusMessage.value = translate('languageUpdated');
     };
 
     const clearOnlyProgress = () => {
       clearProgress();
-      statusMessage.value = 'Watch history removed from this device.';
+      statusMessage.value = translate('historyRemoved');
     };
 
     const clearAllCache = () => {

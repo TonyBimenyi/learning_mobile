@@ -7,11 +7,11 @@
           <div class="discover-toolbar__header">
             <div>
               <span class="section-kicker">
-                <i class="fa-solid fa-compass"></i> Course Catalog
+                <i class="fa-solid fa-compass"></i> {{ t('courseCatalog') }}
               </span>
               <h2>Explore & Discover</h2>
             </div>
-            <span class="results-badge">{{ filteredCourses.length }} {{ filteredCourses.length === 1 ? 'course' : 'courses' }}</span>
+            <span class="results-badge">{{ filteredCourses.length }} {{ filteredCourses.length === 1 ? translate('courseSingular') : translate('courses') }}</span>
           </div>
 
           <div class="discover-toolbar__search-row">
@@ -20,13 +20,13 @@
               <input
                 v-model="searchQuery"
                 type="text"
-                placeholder="Search courses, skills, categories..."
+                :placeholder="t('searchDiscoverPlaceholder')"
               />
               <button
                 v-if="searchQuery"
                 class="search-clear-btn"
                 type="button"
-                aria-label="Clear search"
+                :aria-label="t('clearSearch')"
                 @click="searchQuery = ''"
               >
                 <i class="fa-solid fa-xmark"></i>
@@ -36,7 +36,7 @@
               class="filter-toggle-btn"
               :class="{ 'is-active': showFilters || appliedFilterCount > 0 }"
               type="button"
-              aria-label="Filters"
+              :aria-label="t('filters')"
               @click="toggleFilters"
             >
               <i class="fa-solid fa-sliders"></i>
@@ -53,7 +53,7 @@
               @click="activeCategory = ''"
             >
               <i class="fa-solid fa-layer-group"></i>
-              <span>All Tracks</span>
+              <span>{{ t('allTracks') }}</span>
             </button>
             <button
               v-for="category in categories"
@@ -73,15 +73,15 @@
             <div class="filter-drawer__header">
               <div class="filter-drawer__title">
                 <i class="fa-solid fa-filter"></i>
-                <strong>Refine Catalog</strong>
+                <strong>{{ t('refineCatalog') }}</strong>
               </div>
               <button class="ghost-button filter-drawer__reset" type="button" @click="resetFilters">
-                Reset Filters
+                {{ t('resetFilters') }}
               </button>
             </div>
 
             <div class="filter-drawer__group">
-              <small>Skill Level</small>
+              <small>{{ t('skillLevel') }}</small>
               <div class="filter-drawer__pills">
                 <button
                   class="filter-chip filter-chip--sm"
@@ -89,7 +89,7 @@
                   type="button"
                   @click="activeLevel = ''"
                 >
-                  All levels
+                  {{ t('allLevels') }}
                 </button>
                 <button
                   v-for="level in levels"
@@ -169,11 +169,11 @@
 
               <div class="course-card__footer">
                 <div class="course-card__price-box">
-                  <small>Price</small>
+                  <small>{{ t('price') }}</small>
                   <strong>{{ formatCurrency(course.price) }}</strong>
                 </div>
                 <button class="primary-button course-card__btn" type="button">
-                  <span>View Details</span>
+                  <span>{{ t('viewDetails') }}</span>
                   <i class="fa-solid fa-arrow-right"></i>
                 </button>
               </div>
@@ -183,10 +183,10 @@
           <!-- Empty Results -->
           <article v-if="!isLoading && !filteredCourses.length" class="empty-card">
             <div class="empty-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
-            <strong>No matching courses found</strong>
-            <p>Try clearing your search query or selecting a different subject track.</p>
+            <strong>{{ t('noMatchingCourses') }}</strong>
+            <p>{{ t('noMatchingHint') }}</p>
             <button class="ghost-button" type="button" @click="resetFilters">
-              Show All Courses
+              {{ t('showAllCourses') }}
             </button>
           </article>
         </section>
@@ -198,6 +198,7 @@
 </template>
 
 <script>
+import { translate } from '@/services/i18n';
 import { IonContent, IonPage } from '@ionic/vue';
 import BottomNav from '@/components/BottomNav.vue';
 import CardSkeleton from '@/components/CardSkeleton.vue';
@@ -283,7 +284,7 @@ export default {
     shortDescription(course) {
       const text = String(course.longDescription || course.description || '').trim();
       if (!text) {
-        return 'Build practical skills with an expert-led Twige Academy path.';
+        return translate('heroDescription1');
       }
       return text.length > 92 ? `${text.slice(0, 92)}...` : text;
     },

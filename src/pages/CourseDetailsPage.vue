@@ -5,22 +5,22 @@
         <section v-if="course && selectedLesson" class="course-details-shell">
           <section ref="playerHero" class="player-hero">
             <div class="player-hero__topline">
-              <button class="player-back-btn" type="button" aria-label="Go back" @click="$router.back()">
+              <button class="player-back-btn" type="button" :aria-label="t('goBack')" @click="$router.back()">
                 <i class="fa-solid fa-arrow-left"></i>
               </button>
               <div class="player-hero__topline-right">
                 <button
                   class="player-info-btn"
                   type="button"
-                  title="Video Player Guide"
-                  aria-label="Video Player Guide"
+                  :title="t('videoPlayerGuide')"
+                  :aria-label="t('videoPlayerGuide')"
                   @click="showVideoSplash = true"
                 >
                   <i class="fa-solid fa-circle-info"></i>
                 </button>
                 <button class="player-discuss-btn" type="button" @click="scrollToCommunity">
                   <i class="fa-regular fa-comments"></i>
-                  <span>Discuss</span>
+                  <span>{{ t('discuss') }}</span>
                 </button>
               </div>
             </div>
@@ -42,23 +42,23 @@
                       </div>
 
                       <div class="splash-text-wrap">
-                        <span class="splash-kicker">Twige Video Player</span>
-                        <h3>Welcome to your lesson</h3>
+                        <span class="splash-kicker">Twige {{ t('videoLesson') }}</span>
+                        <h3>{{ t('welcomeToLesson') }}</h3>
                         <p class="splash-course-title">{{ selectedLesson.title }}</p>
                       </div>
 
                       <div class="splash-features-grid">
                         <div class="splash-feature-pill">
                           <i class="fa-solid fa-bolt text-amber"></i>
-                          <span>Fast Progress Stream</span>
+                          <span>{{ t('fastProgressStream') }}</span>
                         </div>
                         <div class="splash-feature-pill">
                           <i class="fa-solid fa-shield-halved text-emerald"></i>
-                          <span>Sandboxed Offline</span>
+                          <span>{{ t('sandboxedOffline') }}</span>
                         </div>
                         <div class="splash-feature-pill">
                           <i class="fa-solid fa-clock text-indigo"></i>
-                          <span>Time Comments</span>
+                          <span>{{ t('timeComments') }}</span>
                         </div>
                       </div>
 
@@ -69,14 +69,14 @@
                           @click="dismissSplashAndPlay"
                         >
                           <i class="fa-solid fa-circle-play"></i>
-                          <span>Start Learning</span>
+                          <span>{{ t('startLearning') }}</span>
                         </button>
                         <button
                           class="ghost-button splash-close-btn"
                           type="button"
                           @click="dismissSplash"
                         >
-                          <span>Dismiss</span>
+                          <span>{{ t('dismiss') }}</span>
                         </button>
                       </div>
                     </div>
@@ -118,7 +118,7 @@
               </div>
               <div class="lesson-chip">
                 <span class="chip-dot"></span>
-                <span>{{ selectedLesson.type || 'Video' }} &bull; {{ selectedLesson.duration || 'Flexible' }}</span>
+                <span>{{ selectedLesson.type || t('video') }} &bull; {{ selectedLesson.duration || t('flexible') }}</span>
               </div>
             </div>
           </section>
@@ -137,17 +137,17 @@
 
               <div class="offline-quick-meta">
                 <div class="offline-quick-heading">
-                  <strong v-if="isDownloadingCurrent">Downloading... {{ currentDownloadPercent }}%</strong>
-                  <strong v-else-if="isCurrentLessonDownloaded">Available Offline</strong>
-                  <strong v-else>Download Lesson</strong>
+                  <strong v-if="isDownloadingCurrent">{{ t('downloading', { percent: currentDownloadPercent }) }}</strong>
+                  <strong v-else-if="isCurrentLessonDownloaded">{{ t('availableOffline') }}</strong>
+                  <strong v-else>{{ t('downloadLesson') }}</strong>
 
                   <span v-if="currentLessonOfflineRecord?.fileSizeLabel" class="offline-mini-tag">
                     {{ currentLessonOfflineRecord.fileSizeLabel }}
                   </span>
                 </div>
-                <small v-if="isDownloadingCurrent">Saving into app</small>
-                <small v-else-if="isCurrentLessonDownloaded">Ready without internet</small>
-                <small v-else>Watch offline in app</small>
+                <small v-if="isDownloadingCurrent">{{ t('savingIntoApp') }}</small>
+                <small v-else-if="isCurrentLessonDownloaded">{{ t('readyWithoutInternet') }}</small>
+                <small v-else>{{ t('watchOfflineInApp') }}</small>
               </div>
             </div>
 
@@ -164,11 +164,11 @@
                 v-else-if="isCurrentLessonDownloaded"
                 class="ghost-button compact-btn offline-remove-btn"
                 type="button"
-                title="Remove download"
+                :title="t('removeOfflineDownload')"
                 @click="removeCurrentDownload()"
               >
                 <i class="fa-solid fa-trash-can"></i>
-                <span>Remove</span>
+                <span>{{ t('remove') }}</span>
               </button>
 
               <button
@@ -178,7 +178,7 @@
                 @click="startDownloadCurrent()"
               >
                 <i class="fa-solid fa-arrow-down-to-bracket"></i>
-                <span>Download</span>
+                <span>{{ t('download') }}</span>
               </button>
             </div>
           </section>
@@ -186,7 +186,7 @@
           <section class="surface-card course-summary-card">
             <div class="course-summary__header">
               <div class="course-summary__heading">
-                <span class="section-kicker">Video Lesson</span>
+                <span class="section-kicker">{{ t('videoLesson') }}</span>
                 <h2>{{ selectedLesson.title }}</h2>
                 <p class="course-eyebrow">{{ course.title }} &bull; {{ instructorLabel }}</p>
               </div>
@@ -197,19 +197,19 @@
             </div>
 
             <div class="summary-pills">
-              <span class="summary-pill"><i class="fa-regular fa-circle-play"></i>{{ course.lessonsCount }} lessons</span>
+              <span class="summary-pill"><i class="fa-regular fa-circle-play"></i>{{ course.lessonsCount }} {{ t('lessons') }}</span>
               <span class="summary-pill"><i class="fa-regular fa-clock"></i>{{ course.duration }}</span>
               <span class="summary-pill"><i class="fa-solid fa-signal"></i>{{ course.level }}</span>
-              <span class="summary-pill"><i class="fa-solid fa-star"></i>{{ course.rating || '4.8' }} rating</span>
+              <span class="summary-pill"><i class="fa-solid fa-star"></i>{{ course.rating || '4.8' }} {{ t('rating') }}</span>
             </div>
 
             <div class="summary-insights">
               <article class="summary-insight-card">
                 <span class="insight-icon"><i class="fa-solid fa-shield-halved"></i></span>
                 <div class="insight-copy">
-                  <small>Checkout</small>
-                  <strong>AfriPay secure payment</strong>
-                  <span>Pay in BIF and unlock the course as soon as your payment is confirmed.</span>
+                  <small>{{ t('checkout') }}</small>
+                  <strong>{{ t('afripaySecure') }}</strong>
+                  <span>{{ t('afripayDescription') }}</span>
                 </div>
               </article>
             </div>
@@ -218,10 +218,10 @@
               <div class="skills-heading">
                 <span class="skills-heading__icon"><i class="fa-solid fa-shapes"></i></span>
                 <div class="skills-heading__copy">
-                  <small class="summary-label">Skills and tags</small>
-                  <strong>What you'll work with</strong>
+                  <small class="summary-label">{{ t('skillsAndTags') }}</small>
+                  <strong>{{ t('whatYouWorkWith') }}</strong>
                 </div>
-                <span v-if="focusTags.length" class="skills-count">{{ focusTags.length }} topics</span>
+                <span v-if="focusTags.length" class="skills-count">{{ t('topics', { count: focusTags.length }) }}</span>
               </div>
               <div v-if="focusTags.length" class="category-bank__chips">
                 <span
@@ -233,7 +233,7 @@
                   <span>{{ tag }}</span>
                 </span>
               </div>
-              <p v-else class="skills-empty">Practical skills for this course will appear here.</p>
+              <p v-else class="skills-empty">{{ t('noSkills') }}</p>
             </div>
 
             <p v-if="paymentNotice" class="payment-notice" :class="`is-${paymentNoticeTone}`">
@@ -242,13 +242,13 @@
 
             <div class="course-summary__footer">
               <div class="course-summary__price">
-                <small>Course price</small>
+                <small>{{ t('coursePrice') }}</small>
                 <strong>{{ priceLabel }}</strong>
               </div>
               <div class="course-summary__actions">
                 <button class="ghost-button reviews-btn" @click="goToReviews">
                   <i class="fa-regular fa-star"></i>
-                  <span>Reviews</span>
+                  <span>{{ t('reviews') }}</span>
                 </button>
                 <button class="primary-button enroll-btn" :disabled="isStartingCheckout" @click="enrollInCourse">
                   <i :class="enrollButtonIcon"></i>
@@ -261,8 +261,8 @@
           <section class="content-section">
             <div class="section-heading">
               <div>
-                <p class="section-kicker">Lessons</p>
-                <h3>Course navigator</h3>
+                <p class="section-kicker">{{ t('lessons') }}</p>
+                <h3>{{ t('courseNavigator') }}</h3>
               </div>
               <span class="section-caption">{{ lessonPositionLabel }}</span>
             </div>
@@ -278,12 +278,12 @@
                 <div class="lesson-tab__badge">{{ index + 1 }}</div>
                 <div class="lesson-tab__copy">
                   <div class="lesson-tab__meta">
-                    <span>{{ lesson.duration || 'Flexible' }} &bull; {{ lesson.type || 'video' }}</span>
+                    <span>{{ lesson.duration || t('flexible') }} &bull; {{ lesson.type || t('video') }}</span>
                     <span v-if="isLessonDownloadedById(getLessonId(lesson, index))" class="lesson-offline-pill">
-                      <i class="fa-solid fa-bolt"></i> Offline
+                      <i class="fa-solid fa-bolt"></i> {{ t('offline') }}
                     </span>
                     <span v-else-if="isLessonDownloadingById(getLessonId(lesson, index))" class="lesson-downloading-pill">
-                      <i class="fa-solid fa-circle-notch fa-spin"></i> Downloading
+                      <i class="fa-solid fa-circle-notch fa-spin"></i> {{ t('download') }}
                     </span>
                   </div>
                   <strong>{{ lesson.title }}</strong>
@@ -299,10 +299,10 @@
           <section ref="communitySection" class="content-section">
             <div class="section-heading">
               <div>
-                <p class="section-kicker">Community</p>
-                <h3>Discuss this lesson</h3>
+                <p class="section-kicker">{{ t('community') }}</p>
+                <h3>{{ t('discussThisLesson') }}</h3>
               </div>
-              <span class="section-caption">{{ discussions.length + reviews.length }} items</span>
+              <span class="section-caption">{{ discussions.length + reviews.length }} {{ t('items') }}</span>
             </div>
 
             <div class="community-tabs">
@@ -312,7 +312,7 @@
                 @click="activeCommunityTab = 'comments'"
               >
                 <i class="fa-regular fa-comments"></i>
-                <span>Comments</span>
+                <span>{{ t('comments') }}</span>
               </button>
               <button
                 class="community-tab"
@@ -320,15 +320,15 @@
                 @click="activeCommunityTab = 'reviews'"
               >
                 <i class="fa-regular fa-star"></i>
-                <span>Reviews</span>
+                <span>{{ t('reviews') }}</span>
               </button>
             </div>
 
             <article v-if="activeCommunityTab === 'comments'" class="surface-card community-composer">
               <div class="community-composer__header">
                 <div>
-                  <span class="section-kicker">New Comment</span>
-                  <h4>Share a thought or ask a question</h4>
+                  <span class="section-kicker">{{ t('newComment') }}</span>
+                  <h4>{{ t('shareThought') }}</h4>
                 </div>
               </div>
 
@@ -341,29 +341,29 @@
               </div>
 
               <label class="input-block">
-                <span>Comment</span>
+                <span>{{ t('comment') }}</span>
                 <textarea
                   v-model="questionForm.text"
                   rows="4"
-                  placeholder="e.g. I did not understand at 2:30 — type any video time and it becomes a clickable jump link..."
+                  :placeholder="t('commentPlaceholder')"
                 ></textarea>
               </label>
 
               <div class="comment-time-hint">
                 <span>
                   <i class="fa-regular fa-clock"></i>
-                  Mention a time like <strong>2:30</strong> and tap it later to jump straight to that part.
+                  {{ t('timeHint') }}
                 </span>
                 <button class="time-insert-btn" type="button" @click="insertCurrentVideoTime">
                   <i class="fa-solid fa-stopwatch"></i>
-                  <span>Add {{ formatClock(currentVideoTime) }}</span>
+                  <span>{{ t('addTime', { time: formatClock(currentVideoTime) }) }}</span>
                 </button>
               </div>
 
               <div class="comment-meta-row">
                 <button class="ghost-button reviews-btn" type="button" @click="goToReviews">
                   <i class="fa-regular fa-star"></i>
-                  <span>Open reviews</span>
+                  <span>{{ t('openReviews') }}</span>
                 </button>
                 <button
                   class="primary-button post-btn"
@@ -372,7 +372,7 @@
                   @click="submitQuestion"
                 >
                   <i v-if="isSubmittingComment" class="fa-solid fa-circle-notch fa-spin"></i>
-                  <span v-else>Post comment</span>
+                  <span v-else>{{ t('postComment') }}</span>
                 </button>
               </div>
             </article>
@@ -380,8 +380,8 @@
             <article v-else class="surface-card community-composer">
               <div class="community-composer__header">
                 <div>
-                  <span class="section-kicker">Write Review</span>
-                  <h4>Rate this lesson experience</h4>
+                  <span class="section-kicker">{{ t('writeReview') }}</span>
+                  <h4>{{ t('rateExperience') }}</h4>
                 </div>
                 <span class="rating-pill">
                   <i class="fa-solid fa-star"></i>
@@ -410,21 +410,21 @@
               </div>
 
               <label class="input-block">
-                <span>Review</span>
+                <span>{{ t('review') }}</span>
                 <textarea
                   v-model="reviewForm.text"
                   rows="4"
-                  placeholder="Share what helped you in this lesson..."
+                  :placeholder="t('reviewPlaceholder')"
                 ></textarea>
               </label>
 
               <div class="comment-meta-row">
                 <div class="review-meta">
-                  <span class="stream-badge">{{ reviews.length }} reviews</span>
-                  <span class="section-caption">{{ averageRating }}/5 average</span>
+                  <span class="stream-badge">{{ t('reviewsCount', { count: reviews.length }) }}</span>
+                  <span class="section-caption">{{ t('average', { value: averageRating }) }}</span>
                 </div>
                 <button class="primary-button post-btn" @click="submitReview">
-                  <span>Post review</span>
+                  <span>{{ t('postReview') }}</span>
                 </button>
               </div>
             </article>
@@ -432,21 +432,21 @@
             <article v-if="activeCommunityTab === 'comments'" class="surface-card community-stream">
               <div class="community-stream__header">
                 <div>
-                  <span class="section-kicker">Community Feed</span>
-                  <h4>Recent discussion</h4>
+                  <span class="section-kicker">{{ t('communityFeed') }}</span>
+                  <h4>{{ t('recentDiscussion') }}</h4>
                 </div>
                 <span class="stream-badge">{{ discussions.length }}</span>
               </div>
 
               <div class="comment-sort-bar">
-                <div class="comment-sort" role="group" aria-label="Sort comments">
+                <div class="comment-sort" role="group" :aria-label="t('sortComments')">
                   <button
                     type="button"
                     :class="{ 'is-active': commentSort === 'top' }"
                     @click="commentSort = 'top'"
                   >
                     <i class="fa-solid fa-fire"></i>
-                    Top comments
+                    {{ t('topComments') }}
                   </button>
                   <button
                     type="button"
@@ -454,7 +454,7 @@
                     @click="commentSort = 'newest'"
                   >
                     <i class="fa-solid fa-clock-rotate-left"></i>
-                    Newest
+                    {{ t('newest') }}
                   </button>
                 </div>
               </div>
@@ -474,7 +474,7 @@
                           <strong>{{ discussion.authorName }}</strong>
                           <span v-if="discussion.isTeacher" class="teacher-badge">
                             <i class="fa-solid fa-graduation-cap"></i>
-                            Instructor
+                            {{ t('instructor') }}
                           </span>
                         </div>
                         <small>{{ discussion.relativeTime }}</small>
@@ -482,18 +482,18 @@
                     </div>
                     <span class="discussion-kind">
                       <i class="fa-regular fa-comment-dots"></i>
-                      Comment
+                      {{ t('comment') }}
                     </span>
                   </div>
                   <div v-if="editingCommentId === discussion.id" class="comment-edit-box">
                     <textarea v-model="editCommentText" rows="3"></textarea>
                     <div class="comment-edit-actions">
                       <button class="ghost-button compact-btn" type="button" @click="cancelEditComment">
-                        Cancel
+                        {{ t('cancel') }}
                       </button>
                       <button class="primary-button compact-btn" type="button" @click="saveCommentEdit(discussion)">
                         <i class="fa-solid fa-check"></i>
-                        Save
+                        {{ t('save') }}
                       </button>
                     </div>
                   </div>
@@ -503,7 +503,7 @@
                         v-if="segment.type === 'time'"
                         class="inline-time-chip"
                         type="button"
-                        :title="`Jump to ${segment.value} in the video`"
+                        :title="t('jumpToTime', { time: segment.value })"
                         @click="seekVideoTo(segment.seconds)"
                       >
                         <i class="fa-solid fa-play"></i>{{ segment.value }}
@@ -516,7 +516,7 @@
                       class="ghost-button compact-btn comment-like-btn"
                       :class="{ 'is-liked': discussion.likedByMe }"
                       type="button"
-                      :title="discussion.likedByMe ? 'Remove your like' : 'Like this comment'"
+                      :title="discussion.likedByMe ? t('removeLike') : t('likeComment')"
                       @click="handleLikeDiscussion(discussion)"
                     >
                       <i :class="discussion.likedByMe ? 'fa-solid fa-thumbs-up' : 'fa-regular fa-thumbs-up'"></i>
@@ -524,24 +524,24 @@
                     </button>
                     <button class="ghost-button compact-btn reply-btn" @click="discussion.showReply = !discussion.showReply">
                       <i class="fa-regular fa-comment"></i>
-                      <span>{{ discussion.replies.length }} replies</span>
+                      <span>{{ t('replies', { count: discussion.replies.length }) }}</span>
                     </button>
                     <span class="comment-action-spacer"></span>
                     <button
                       v-if="canEditComment(discussion)"
                       class="ghost-button compact-btn comment-edit-btn"
                       type="button"
-                      title="Edit your comment"
+                      :title="t('editComment')"
                       @click="startEditComment(discussion)"
                     >
                       <i class="fa-solid fa-pen"></i>
-                      <span>Edit</span>
+                      <span>{{ t('edit') }}</span>
                     </button>
                     <button
                       v-if="canModerateComments"
                       class="ghost-button compact-btn comment-delete-btn"
                       type="button"
-                      title="Delete comment"
+                      :title="t('deleteComment')"
                       @click="deleteComment(discussion)"
                     >
                       <i class="fa-solid fa-trash-can"></i>
@@ -556,10 +556,10 @@
                       :class="{ 'is-teacher': reply.isTeacher }"
                     >
                       <div class="reply-author-line">
-                        <strong>{{ reply.authorName || 'Teacher' }}</strong>
+                        <strong>{{ reply.authorName || t('instructor') }}</strong>
                         <span v-if="reply.isTeacher" class="teacher-badge teacher-badge--small">
                           <i class="fa-solid fa-graduation-cap"></i>
-                          Instructor
+                          {{ t('instructor') }}
                         </span>
                         <small>{{ reply.relativeTime }}</small>
                       </div>
@@ -569,7 +569,7 @@
                             v-if="segment.type === 'time'"
                             class="inline-time-chip"
                             type="button"
-                            :title="`Jump to ${segment.value} in the video`"
+                            :title="t('jumpToTime', { time: segment.value })"
                             @click="seekVideoTo(segment.seconds)"
                           >
                             <i class="fa-solid fa-play"></i>{{ segment.value }}
@@ -584,10 +584,10 @@
                     <input
                       v-model="reviewReplies[discussion.id]"
                       type="text"
-                      placeholder="Write a reply..."
+                      :placeholder="t('writeReply')"
                     />
                     <button class="primary-button post-btn reply-post-btn" @click="submitDiscussionReply(discussion)">
-                      <span>Post</span>
+                      <span>{{ t('post') }}</span>
                     </button>
                   </div>
                 </article>
@@ -600,21 +600,21 @@
                 @click="showAllComments = !showAllComments"
               >
                 <i :class="showAllComments ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down'"></i>
-                <span v-if="!showAllComments">See all {{ discussions.length }} comments</span>
-                <span v-else>Show fewer comments</span>
+                <span v-if="!showAllComments">{{ t('seeAllComments', { count: discussions.length }) }}</span>
+                <span v-else>{{ t('showFewerComments') }}</span>
               </button>
 
               <div v-if="!discussions.length" class="empty-community">
                 <div class="empty-icon"><i class="fa-regular fa-comment-dots"></i></div>
-                <p>No comments yet. Be the first to start the discussion!</p>
+                <p>{{ t('noComments') }}</p>
               </div>
             </article>
 
             <article v-else class="surface-card community-stream">
               <div class="community-stream__header">
                 <div>
-                  <span class="section-kicker">Learner Reviews</span>
-                  <h4>What students are saying</h4>
+                  <span class="section-kicker">{{ t('learnerReviews') }}</span>
+                  <h4>{{ t('whatStudentsSay') }}</h4>
                 </div>
                 <span class="stream-badge">{{ reviews.length }}</span>
               </div>
@@ -630,7 +630,7 @@
                       <img :src="review.avatar || fallbackAvatar(review.authorName)" :alt="review.authorName" />
                       <div>
                         <strong>{{ review.authorName }}</strong>
-                        <span>{{ review.date || 'Recent' }}</span>
+                        <span>{{ review.date || t('recent') }}</span>
                       </div>
                     </div>
                     <span class="rating-chip">
@@ -640,14 +640,14 @@
                   </div>
                   <p class="discussion-card__text">{{ review.text }}</p>
                   <article v-if="review.reply" class="teacher-reply-card">
-                    <strong>{{ review.reply.authorName || 'Teacher' }}</strong>
+                    <strong>{{ review.reply.authorName || t('instructor') }}</strong>
                     <p>{{ review.reply.text }}</p>
                   </article>
                 </article>
               </div>
               <div v-else class="empty-community">
                 <div class="empty-icon"><i class="fa-regular fa-star"></i></div>
-                <p>No reviews yet. Share the first one for this lesson.</p>
+                <p>{{ t('noReviews') }}</p>
               </div>
             </article>
           </section>
@@ -655,21 +655,21 @@
 
         <section v-else-if="isLoading" class="surface-card empty-card">
           <div class="empty-icon"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
-          <strong>Loading course...</strong>
-          <span class="section-caption">Preparing course and video details...</span>
+          <strong>{{ t('loadingCourse') }}</strong>
+          <span class="section-caption">{{ t('preparingCourse') }}</span>
         </section>
 
         <section v-else class="surface-card empty-card offline-fallback-card">
           <div class="empty-icon"><i class="fa-solid fa-cloud-arrow-down"></i></div>
-          <strong>Course Unavailable Offline</strong>
-          <span class="section-caption">This course has not been downloaded for offline viewing yet. Connect to the internet or view your downloaded lessons.</span>
+          <strong>{{ t('courseUnavailableOffline') }}</strong>
+          <span class="section-caption">{{ t('offlineFallbackText') }}</span>
           <div class="empty-actions" style="margin-top: 16px; display: flex; gap: 10px; justify-content: center;">
             <button class="primary-button compact-btn" type="button" @click="$router.push('/downloads')">
               <i class="fa-solid fa-arrow-down-to-bracket"></i>
-              <span>View Downloads</span>
+              <span>{{ t('viewDownloads') }}</span>
             </button>
             <button class="ghost-button compact-btn" type="button" @click="$router.back()">
-              <span>Go Back</span>
+              <span>{{ t('goBack') }}</span>
             </button>
           </div>
         </section>
@@ -711,6 +711,7 @@ import {
 } from '@/services/downloads';
 import { getProgressMap, getToken, saveLessonProgress } from '@/services/storage';
 import { showToast } from '@/services/toast';
+import { translate } from '@/services/i18n';
 import {
   consumeResumeOnReturn,
   getMiniPlayerState,
@@ -954,7 +955,7 @@ export default {
         : selectedLesson.value;
       const index = (typeof targetIndex === 'number') ? targetIndex : selectedLessonIndex.value;
       if (!lesson || !course.value) {
-        paymentNotice.value = 'Please select a lesson to download.';
+        paymentNotice.value = translate('selectLessonFirst');
         paymentNoticeTone.value = 'warning';
         return;
       }
@@ -963,7 +964,7 @@ export default {
       const videoUrl = streamUrl || lesson.videoUrl || lesson.source || '';
 
       if (!videoUrl) {
-        paymentNotice.value = 'No downloadable video source available for this lesson.';
+        paymentNotice.value = translate('noVideoSource');
         paymentNoticeTone.value = 'error';
         return;
       }
@@ -987,12 +988,12 @@ export default {
         downloadedLessonIds.value.add(lessonId);
         downloadingLessonIds.value.delete(lessonId);
         await syncOfflineStatusForCurrentLesson();
-        paymentNotice.value = 'Lesson video downloaded for offline viewing.';
+        paymentNotice.value = translate('lessonDownloaded');
         paymentNoticeTone.value = 'success';
       } catch (error) {
         console.error('Download failed:', error);
         downloadingLessonIds.value.delete(lessonId);
-        paymentNotice.value = `Download failed: ${error.message || 'Network error'}`;
+        paymentNotice.value = translate('downloadFailed', { error: error.message || translate('networkError') });
         paymentNoticeTone.value = 'error';
       }
     };
@@ -1008,7 +1009,7 @@ export default {
       await deleteDownloadedLesson(lessonId);
       downloadedLessonIds.value.delete(lessonId);
       await syncOfflineStatusForCurrentLesson();
-      paymentNotice.value = 'Lesson removed from offline downloads.';
+      paymentNotice.value = translate('lessonRemoved');
       paymentNoticeTone.value = 'info';
     };
 
@@ -1039,8 +1040,9 @@ export default {
     const userAvatar = computed(() => user.value?.avatar || buildAvatar(user.value?.name));
     const userDisplayName = computed(() => user.value?.name || 'Learner');
     const userProfileLabel = computed(() => {
-      const role = String(user.value?.role || 'student');
-      return role.charAt(0).toUpperCase() + role.slice(1);
+      const role = String(user.value?.role || 'student').toLowerCase();
+      if (['teacher', 'admin', 'staff', 'instructor'].includes(role)) return translate('instructor');
+      return translate('student');
     });
     const questionTimeLabel = computed(() => formatClock(questionForm.value.timeSec || currentVideoTime.value || getSavedSeconds()));
     const focusTags = computed(() => {
@@ -1081,7 +1083,10 @@ export default {
       if (!course.value || !selectedLesson.value) {
         return '';
       }
-      return `Lesson ${selectedLessonIndex.value + 1} of ${(course.value.curriculum || []).length}`;
+      return translate('lessonPosition', {
+        current: selectedLessonIndex.value + 1,
+        total: (course.value.curriculum || []).length,
+      });
     });
 
     const averageRating = computed(() => {
@@ -1151,30 +1156,30 @@ export default {
     });
     const enrollmentStatusLabel = computed(() => {
       if (enrollmentStatus.value === 'success') {
-        return 'Already enrolled';
+        return translate('alreadyEnrolled');
       }
       if (enrollmentStatus.value === 'pending') {
-        return 'Payment pending';
+        return translate('paymentPending');
       }
       if (enrollmentStatus.value === 'error') {
-        return 'Payment failed';
+        return translate('paymentFailed');
       }
-      return 'Ready to enroll';
+      return translate('readyToEnroll');
     });
     const enrollButtonLabel = computed(() => {
       if (isStartingCheckout.value) {
-        return 'Opening AfriPay...';
+        return translate('openingAfripay');
       }
       if (enrollmentStatus.value === 'success') {
-        return 'Start Learning';
+        return translate('startLearning');
       }
       if (enrollmentStatus.value === 'pending') {
-        return 'Continue Payment';
+        return translate('continuePayment');
       }
       if (!getToken()) {
-        return 'Login to Enroll';
+        return translate('loginToEnroll');
       }
-      return 'Pay with AfriPay';
+      return translate('payWithAfriPay');
     });
     const enrollButtonIcon = computed(() => {
       if (enrollmentStatus.value === 'success') {
@@ -1291,7 +1296,7 @@ export default {
         useProxyStream.value = true;
         return;
       }
-      paymentNotice.value = 'The video is streaming progressively. Playback will continue as more data loads.';
+      paymentNotice.value = translate('streamingNotice');
       paymentNoticeTone.value = 'warning';
     };
 
@@ -1312,7 +1317,7 @@ export default {
       // If offline and the selected lesson is not downloaded, alert user gracefully
       const lessonId = getLessonId(selectedLesson.value, index);
       if (isOfflineMode.value && !downloadedLessonIds.value.has(lessonId)) {
-        paymentNotice.value = `"${selectedLesson.value?.title || 'Lesson'}" is not downloaded for offline viewing. Reconnect to internet to watch it.`;
+        paymentNotice.value = translate('notDownloadedOffline', { lesson: selectedLesson.value?.title || translate('videoLesson') });
         paymentNoticeTone.value = 'warning';
       }
     };
@@ -1370,22 +1375,22 @@ export default {
       }
       const matched = enrollments.value.find((entry) => entry.id === token);
       if (!matched) {
-        paymentNotice.value = 'We are waiting for AfriPay confirmation for this course.';
+        paymentNotice.value = translate('waitingAfripay');
         paymentNoticeTone.value = 'info';
         return;
       }
       const status = String(matched.paymentStatus || '').toLowerCase();
       if (status === 'success') {
-        paymentNotice.value = 'Payment confirmed. Your course is now unlocked in My Learning.';
+        paymentNotice.value = translate('paymentConfirmed');
         paymentNoticeTone.value = 'success';
         return;
       }
       if (status === 'error') {
-        paymentNotice.value = 'AfriPay reported a payment issue. You can retry checkout from here.';
+        paymentNotice.value = translate('afripayIssue');
         paymentNoticeTone.value = 'error';
         return;
       }
-      paymentNotice.value = 'Your payment was created and is still waiting for confirmation.';
+      paymentNotice.value = translate('paymentWaiting');
       paymentNoticeTone.value = 'warning';
     };
 
@@ -1406,7 +1411,7 @@ export default {
       }
 
       isStartingCheckout.value = true;
-      paymentNotice.value = 'Preparing your AfriPay checkout...';
+      paymentNotice.value = translate('preparingCheckout');
       paymentNoticeTone.value = 'info';
 
       try {
@@ -1419,7 +1424,7 @@ export default {
         });
         submitCheckoutForm(checkout.action, checkout.fields, checkout.redirectUrl);
       } catch (error) {
-        paymentNotice.value = error.message || 'We could not start AfriPay checkout.';
+        paymentNotice.value = error.message || translate('checkoutFailed');
         paymentNoticeTone.value = 'error';
       } finally {
         isStartingCheckout.value = false;
@@ -1479,9 +1484,9 @@ export default {
         questionForm.value.text = '';
         commentSort.value = 'newest';
         showAllComments.value = true;
-        showToast('Your comment has been posted.', 'success');
+        showToast(translate('commentPosted'), 'success');
       } catch (error) {
-        showToast(error?.message || 'Could not post your comment.', 'error');
+        showToast(error?.message || translate('commentPostFailed'), 'error');
       } finally {
         isSubmittingComment.value = false;
       }
@@ -1501,7 +1506,7 @@ export default {
     const saveCommentEdit = async (comment) => {
       const text = String(editCommentText.value || '').trim();
       if (!text) {
-        showToast('Write something before saving.', 'warning');
+        showToast(translate('commentEmpty'), 'warning');
         return;
       }
       try {
@@ -1517,9 +1522,9 @@ export default {
             : item
         ));
         cancelEditComment();
-        showToast('Your comment has been updated.', 'success');
+        showToast(translate('commentUpdated'), 'success');
       } catch (error) {
-        showToast(error?.message || 'Could not update your comment.', 'error');
+        showToast(error?.message || translate('commentUpdateFailed'), 'error');
       }
     };
 
@@ -1531,9 +1536,9 @@ export default {
         await deleteDiscussion(comment.id);
         discussions.value = discussions.value.filter((item) => item.id !== comment.id);
         if (editingCommentId.value === comment.id) cancelEditComment();
-        showToast('Comment deleted.', 'info');
+        showToast(translate('commentDeleted'), 'info');
       } catch (error) {
-        showToast(error?.message || 'Could not delete this comment.', 'error');
+        showToast(error?.message || translate('commentDeleteFailed'), 'error');
       }
     };
 
@@ -1557,7 +1562,7 @@ export default {
         rating: 5,
         text: '',
       };
-      showToast('Thanks! Your review has been posted.', 'success');
+      showToast(translate('reviewPosted'), 'success');
     };
 
     const handleLikeDiscussion = async (discussion) => {
@@ -1576,7 +1581,7 @@ export default {
             : item
         ));
       } catch (error) {
-        showToast(error?.message || 'Could not update your like.', 'error');
+        showToast(error?.message || translate('likeFailed'), 'error');
       }
     };
 
@@ -1600,9 +1605,9 @@ export default {
           item.id === discussion.id ? normalizeDiscussion(merged) : item
         ));
         reviewReplies.value[discussion.id] = '';
-        showToast('Your reply has been posted.', 'success');
+        showToast(translate('replyPosted'), 'success');
       } catch (error) {
-        showToast(error?.message || 'Could not post your reply.', 'error');
+        showToast(error?.message || translate('replyFailed'), 'error');
       }
     };
 
@@ -2290,7 +2295,7 @@ export default {
   display: grid;
   place-items: center;
   background: var(--brand-gradient);
-  color: var(--text-inverse);
+  color: #ffffff;
   box-shadow: var(--shadow-brand-sm);
   font-size: 0.95rem;
 }

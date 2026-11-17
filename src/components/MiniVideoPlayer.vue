@@ -16,7 +16,7 @@
         <button
           class="pip-btn pip-btn--close"
           type="button"
-          aria-label="Close mini player"
+          :aria-label="t('closeMiniPlayer')"
           @pointerdown.stop
           @click.stop="close"
         >
@@ -29,7 +29,7 @@
         <button
           class="pip-btn"
           type="button"
-          :aria-label="isPlaying ? 'Pause' : 'Play'"
+          :aria-label="isPlaying ? t('pause') : t('play')"
           @pointerdown.stop
           @click.stop="togglePlay"
         >
@@ -41,8 +41,8 @@
         <button
           class="pip-btn"
           type="button"
-          aria-label="Return to lesson"
-          title="Return to lesson"
+          :aria-label="t('returnToLesson')"
+          :title="t('returnToLesson')"
           @pointerdown.stop
           @click.stop="expand"
         >
@@ -53,8 +53,8 @@
       <!-- Simple error state -->
       <div v-if="hasError" class="pip-player__error">
         <i class="fa-solid fa-triangle-exclamation"></i>
-        <span>Playback unavailable</span>
-        <button type="button" @pointerdown.stop @click.stop="close">Close</button>
+        <span>{{ t('playbackUnavailable') }}</span>
+        <button type="button" @pointerdown.stop @click.stop="close">{{ t('dismiss') }}</button>
       </div>
     </div>
   </transition>
