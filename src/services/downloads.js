@@ -15,6 +15,7 @@ const COURSE_STORE_NAME = 'offline_courses';
 let dbPromise = null;
 const activeDownloads = new Map(); // tracks ongoing downloads & progress callbacks
 const activeProgress = new Map(); // tracks current progress percent
+const activeControllers = new Map(); // AbortControllers used to cancel a running download
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -491,6 +492,9 @@ export async function downloadLessonVideo(lesson, course, onProgress = null) {
     return activeDownloads.get(lessonId);
   }
 
+  const controller = new AbortController();
+  activeControllers.set(lessonId, controller);
+
   const downloadPromise = (async () => {
     try {
       activeProgress.set(lessonId, 0);
@@ -501,10 +505,11 @@ export async function downloadLessonVideo(lesson, course, onProgress = null) {
 
       let response;
       try {
-        response = await fetch(videoUrl, { headers: buildFetchHeaders() });
+        response = await fetch(videoUrl, { headers: buildFetchHeaders(), signal: controller.signal });
       } catch (fetchErr) {
+        if (controller.signal.aborted) throw fetchErr;
         if (altUrl && videoUrl !== altUrl) {
-          response = await fetch(altUrl, { headers: buildFetchHeaders() });
+          response = await fetch(altUrl, { headers: buildFetchHeaders(), signal: controller.signal });
         } else {
           throw fetchErr;
         }
@@ -513,7 +518,7 @@ export async function downloadLessonVideo(lesson, course, onProgress = null) {
       // If initial response was not ok (e.g., 404/502) and an alternative videoUrl exists, try it as fallback
       if (!response.ok && altUrl && videoUrl !== altUrl) {
         try {
-          const fallbackResp = await fetch(altUrl, { headers: buildFetchHeaders() });
+          const fallbackResp = await fetch(altUrl, { headers: buildFetchHeaders(), signal: controller.signal });
           if (fallbackResp.ok) {
             response = fallbackResp;
           }
@@ -534,6 +539,7 @@ export async function downloadLessonVideo(lesson, course, onProgress = null) {
         let received = 0;
 
         while (true) {
+          if (controller.signal.aborted) throw new DOMException('Download cancelled', 'DownloadCancelledError');
           const { done, value } = await reader.read();
           if (done) break;
           chunks.push(value);
@@ -652,11 +658,17 @@ export async function downloadLessonVideo(lesson, course, onProgress = null) {
       emitDownloadsUpdate({ lessonId, status: 'completed', record });
       return record;
     } catch (err) {
+      if (controller.signal.aborted || err?.name === 'DownloadCancelledError') {
+        const cancelled = new DOMException('Download cancelled', 'DownloadCancelledError');
+        emitDownloadsUpdate({ lessonId, status: 'cancelled' });
+        throw cancelled;
+      }
       emitDownloadsUpdate({ lessonId, status: 'error', error: err.message });
       throw err;
     } finally {
       activeDownloads.delete(lessonId);
       activeProgress.delete(lessonId);
+      activeControllers.delete(lessonId);
     }
   })();
 
@@ -718,6 +730,16 @@ export async function clearAllDownloads() {
     console.error('Failed to clear downloads:', error);
     return false;
   }
+}
+
+/**
+ * Cancel a running download. Returns true if a download was in progress.
+ */
+export function cancelLessonDownload(lessonId) {
+  const controller = activeControllers.get(String(lessonId));
+  if (!controller) return false;
+  controller.abort();
+  return true;
 }
 
 /**

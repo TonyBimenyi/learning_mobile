@@ -1,42 +1,35 @@
 <template>
   <ion-page>
     <ion-content :fullscreen="true" class="app-screen">
-      <div class="screen-shell auth-shell">
-        <!-- Auth Header -->
+      <div class="auth-shell">
+        <!-- Brand + headline (one place, no repeated titles) -->
         <section class="auth-hero">
-          <div class="auth-logo-badge">
-            <i class="fa-solid fa-graduation-cap"></i>
+          <span class="auth-hero__glow" aria-hidden="true"></span>
+
+          <div class="auth-hero__top">
+            <div class="auth-brand">
+              <span class="auth-brand__mark"><i class="fa-solid fa-graduation-cap"></i></span>
+              <span>{{ t('appName') }}</span>
+            </div>
+            <RouterLink to="/home" class="auth-skip">
+              <span>{{ t('backToExplore') }}</span>
+              <i class="fa-solid fa-arrow-right"></i>
+            </RouterLink>
           </div>
-          <span class="pill pill--brand">{{ t('appName') }}</span>
-          <h1>{{ t(mode === 'login' ? 'greeting' : 'createAccount') }}</h1>
-          <p>{{ t(mode === 'login' ? 'loginSubtitle' : 'registerSubtitle') }}</p>
-          
-          <div class="auth-hero__highlights">
-            <span class="highlight-chip">
-              <i class="fa-solid fa-circle-play"></i> {{ t('fullHDLessons') }}
+
+          <div class="auth-hero__copy">
+            <span class="auth-hero__eyebrow">
+              <i :class="mode === 'login' ? 'fa-solid fa-right-to-bracket' : 'fa-solid fa-user-plus'"></i>
+              {{ t(mode === 'login' ? 'memberAccess' : 'newMember') }}
             </span>
-            <span class="highlight-chip">
-              <i class="fa-solid fa-language"></i> EN / FR / RN
-            </span>
-            <span class="highlight-chip">
-              <i class="fa-solid fa-shield-halved"></i> {{ t('secureAccess') }}
-            </span>
+            <h1>{{ t(mode === 'login' ? 'greeting' : 'createAccount') }}</h1>
+            <p>{{ t(mode === 'login' ? 'loginSubtitle' : 'registerSubtitle') }}</p>
           </div>
         </section>
 
-        <!-- Auth Form Card -->
-        <section class="surface-card auth-card">
-          <div class="auth-card__header">
-            <div>
-              <p class="section-kicker">
-                <i :class="mode === 'login' ? 'fa-solid fa-lock' : 'fa-solid fa-user-plus'"></i>
-                {{ t(mode === 'login' ? 'accountLogin' : 'createAccount') }}
-              </p>
-              <h3>{{ t(mode === 'login' ? 'signInContinue' : 'createAccount') }}</h3>
-            </div>
-          </div>
-
-          <div class="auth-mode-switch" role="tablist">
+        <!-- Single form card -->
+        <section class="auth-card">
+          <div class="auth-tabs" role="tablist">
             <button
               type="button"
               role="tab"
@@ -44,7 +37,7 @@
               :class="{ 'is-active': mode === 'login' }"
               @click="setMode('login')"
             >
-              <i class="fa-solid fa-right-to-bracket"></i> {{ t('signIn') }}
+              {{ t('signIn') }}
             </button>
             <button
               type="button"
@@ -53,15 +46,15 @@
               :class="{ 'is-active': mode === 'register' }"
               @click="setMode('register')"
             >
-              <i class="fa-solid fa-user-plus"></i> {{ t('signUp') }}
+              {{ t('signUp') }}
             </button>
           </div>
 
           <form class="auth-form" @submit.prevent="submitAuth">
-            <label v-if="mode === 'register'" class="input-block">
+            <label v-if="mode === 'register'" class="auth-field">
               <span>{{ t('fullName') }}</span>
-              <div class="input-field-wrap">
-                <i class="fa-regular fa-user input-icon"></i>
+              <div class="auth-field__control">
+                <i class="fa-regular fa-user"></i>
                 <input
                   v-model="form.name"
                   type="text"
@@ -72,10 +65,10 @@
               </div>
             </label>
 
-            <label v-if="mode === 'register'" class="input-block">
+            <label v-if="mode === 'register'" class="auth-field">
               <span>{{ t('whatsappNumber') }}</span>
-              <div class="input-field-wrap">
-                <i class="fa-brands fa-whatsapp input-icon"></i>
+              <div class="auth-field__control">
+                <i class="fa-brands fa-whatsapp"></i>
                 <input
                   v-model="form.whatsapp"
                   type="tel"
@@ -86,42 +79,10 @@
               </div>
             </label>
 
-            <div v-if="mode === 'register'" class="input-block">
-              <span>{{ t('registerAs') }}</span>
-              <div class="role-switch">
-                <button
-                  type="button"
-                  :class="{ 'is-active': form.role === 'student' }"
-                  @click="form.role = 'student'"
-                >
-                  <i class="fa-solid fa-book-open"></i> {{ t('student') }}
-                </button>
-                <button
-                  type="button"
-                  :class="{ 'is-active': form.role === 'teacher' }"
-                  @click="form.role = 'teacher'"
-                >
-                  <i class="fa-solid fa-chalkboard-user"></i> {{ t('teacher') }}
-                </button>
-              </div>
-            </div>
-
-            <label v-if="mode === 'register' && form.role === 'teacher'" class="input-block">
-              <span>{{ t('specialty') }}</span>
-              <div class="input-field-wrap">
-                <i class="fa-solid fa-palette input-icon"></i>
-                <input
-                  v-model="form.specialty"
-                  type="text"
-                  :placeholder="t('specialtyPlaceholder')"
-                />
-              </div>
-            </label>
-
-            <label class="input-block">
+            <label class="auth-field">
               <span>{{ t('emailAddress') }}</span>
-              <div class="input-field-wrap">
-                <i class="fa-regular fa-envelope input-icon"></i>
+              <div class="auth-field__control">
+                <i class="fa-regular fa-envelope"></i>
                 <input
                   v-model="form.email"
                   type="email"
@@ -132,12 +93,10 @@
               </div>
             </label>
 
-            <label class="input-block">
-              <div class="password-label-row">
-                <span>{{ t('password') }}</span>
-              </div>
-              <div class="input-field-wrap">
-                <i class="fa-solid fa-key input-icon"></i>
+            <label class="auth-field">
+              <span>{{ t('password') }}</span>
+              <div class="auth-field__control">
+                <i class="fa-solid fa-key"></i>
                 <input
                   v-model="form.password"
                   :type="showPassword ? 'text' : 'password'"
@@ -147,7 +106,7 @@
                   required
                 />
                 <button
-                  class="password-toggle-btn"
+                  class="auth-field__toggle"
                   type="button"
                   :aria-label="t('togglePasswordVisibility')"
                   @click="showPassword = !showPassword"
@@ -157,33 +116,22 @@
               </div>
             </label>
 
-            <button
-              class="primary-button auth-submit-btn"
-              type="submit"
-              :disabled="isSubmitting"
-            >
+            <button class="auth-submit" type="submit" :disabled="isSubmitting">
               <i v-if="isSubmitting" class="fa-solid fa-circle-notch fa-spin"></i>
-              <i v-else-if="mode === 'login'" class="fa-solid fa-right-to-bracket"></i>
-              <i v-else class="fa-solid fa-user-plus"></i>
+              <i v-else :class="mode === 'login' ? 'fa-solid fa-right-to-bracket' : 'fa-solid fa-user-plus'"></i>
               <span>{{ isSubmitting ? t(mode === 'login' ? 'verifying' : 'signingUp') : t(mode === 'login' ? 'signIn' : 'signUp') }}</span>
             </button>
           </form>
 
-          <div v-if="message" class="auth-feedback" :class="{ 'is-error': isError, 'is-info': !isError }">
-            <i :class="isError ? 'fa-solid fa-circle-exclamation' : 'fa-solid fa-circle-info'"></i>
+          <div v-if="message" class="auth-feedback" :class="{ 'is-error': isError }">
+            <i :class="isError ? 'fa-solid fa-circle-exclamation' : 'fa-solid fa-circle-check'"></i>
             <span>{{ message }}</span>
           </div>
 
-          <div class="auth-card__footer">
-            <button type="button" class="text-link auth-mode-link" @click="setMode(mode === 'login' ? 'register' : 'login')">
-              <i :class="mode === 'login' ? 'fa-solid fa-user-plus' : 'fa-solid fa-right-to-bracket'"></i>
-              <span>{{ t(mode === 'login' ? 'switchToSignUp' : 'switchToSignIn') }}</span>
-            </button>
-            <RouterLink to="/home" class="text-link">
-              <i class="fa-solid fa-arrow-left"></i>
-              <span>{{ t('backToExplore') }}</span>
-            </RouterLink>
-          </div>
+          <p class="auth-footnote">
+            <i class="fa-solid fa-shield-halved"></i>
+            <span>{{ t('secureAccess') }}</span>
+          </p>
         </section>
       </div>
     </ion-content>
@@ -197,32 +145,27 @@ import { loginUser, registerUser } from '@/services/api';
 
 export default {
   name: 'LoginPage',
-  components: {
-    IonContent,
-    IonPage,
-  },
+  components: { IonContent, IonPage },
   data() {
     return {
       mode: 'login',
       form: {
         name: '',
         whatsapp: '',
-        role: 'student',
-        specialty: '',
         email: '',
         password: '',
       },
       showPassword: false,
       isSubmitting: false,
       isError: false,
-      message: translate('loginHeroSubtitle'),
+      message: '',
     };
   },
   methods: {
     setMode(mode) {
       this.mode = mode;
       this.isError = false;
-      this.message = translate(mode === 'login' ? 'loginHeroSubtitle' : 'registerSubtitle');
+      this.message = '';
     },
     async submitAuth() {
       const { email, password, name, whatsapp } = this.form;
@@ -251,26 +194,23 @@ export default {
 
       this.isSubmitting = true;
       this.isError = false;
-      this.message = translate(this.mode === 'login' ? 'verifying' : 'signingUp');
+      this.message = '';
 
       try {
         if (this.mode === 'register') {
           await registerUser({
             name: name.trim(),
             whatsapp: whatsapp.trim(),
-            role: this.form.role,
-            specialty: this.form.role === 'teacher' ? this.form.specialty.trim() : '',
             email: email.trim(),
             password,
           });
         } else {
           await loginUser({ email: email.trim(), password });
         }
-        const redirect = this.$route.query.redirect || '/profile';
-        this.$router.replace(redirect);
+        this.$router.replace(this.$route.query.redirect || '/profile');
       } catch (error) {
         this.isError = true;
-        this.message = error.message || translate(this.mode === 'login' ? 'loginFailed' : 'checkoutFailed');
+        this.message = error.message || translate(this.mode === 'login' ? 'loginFailed' : 'registerFailed');
       } finally {
         this.isSubmitting = false;
       }
@@ -284,120 +224,153 @@ export default {
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 24px;
-  padding-bottom: 40px;
+  gap: 0;
+  padding-bottom: 36px;
 }
 
+/* ── Gradient hero ─────────────────────────────────────────── */
 .auth-hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 12px;
-  padding: 10px 10px 0;
+  position: relative;
+  overflow: hidden;
+  padding: 22px 22px 52px;
+  border-radius: var(--radius-2xl);
+  background: var(--brand-hero-gradient);
+  color: #ffffff;
+  box-shadow: 0 20px 48px -14px rgba(15, 23, 42, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
 }
 
-.auth-logo-badge {
-  width: 58px;
-  height: 58px;
-  border-radius: var(--radius-xl);
-  background: var(--brand-gradient);
-  color: #ffffff;
+.auth-hero__glow {
+  position: absolute;
+  top: -120px;
+  right: -60px;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(129, 140, 248, 0.4) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.auth-hero__top {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.auth-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.auth-brand__mark {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
   display: grid;
   place-items: center;
-  font-size: 1.5rem;
-  box-shadow: var(--shadow-brand);
-  margin-bottom: 4px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(10px);
+  font-size: 1.1rem;
+}
+
+.auth-skip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.auth-hero__copy {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.auth-hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  padding: 5px 11px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .auth-hero h1 {
   margin: 0;
-  font-size: 1.75rem;
+  font-size: 1.8rem;
   font-weight: 800;
-  color: var(--text-main);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
 }
 
 .auth-hero p {
   margin: 0;
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  line-height: 1.5;
-  max-width: 320px;
+  max-width: 30rem;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: rgba(241, 245, 249, 0.85);
 }
 
-.auth-hero__highlights {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.highlight-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: var(--radius-full);
+/* ── Form card ─────────────────────────────────────────────── */
+.auth-card {
+  position: relative;
+  z-index: 2;
+  margin-top: -26px;
+  margin-inline: 12px;
+  padding: 24px 20px 20px;
+  border-radius: var(--radius-2xl);
   background: var(--surface);
   border: 1px solid var(--line);
-  color: var(--text-secondary);
-  font-size: 0.74rem;
-  font-weight: 600;
-  box-shadow: var(--shadow-xs);
-}
-
-.highlight-chip i {
-  color: var(--brand);
-}
-
-/* Card */
-.auth-card {
-  padding: 26px;
-  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-card);
   display: grid;
   gap: 20px;
 }
 
-.auth-card__header h3 {
-  margin: 4px 0 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--text-main);
-}
-
-.auth-mode-switch,
-.role-switch {
+.auth-tabs {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   padding: 5px;
   border-radius: var(--radius-lg);
   background: var(--surface-soft);
   border: 1px solid var(--line);
 }
 
-.auth-mode-switch button,
-.role-switch button {
+.auth-tabs button {
   flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  padding: 10px 12px;
+  padding: 11px 12px;
   border: none;
   border-radius: var(--radius-md);
   background: transparent;
   color: var(--text-muted);
-  font-size: 0.84rem;
+  font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
-.auth-mode-switch button.is-active,
-.role-switch button.is-active {
+.auth-tabs button.is-active {
   background: var(--brand-gradient);
   color: #ffffff;
   box-shadow: var(--shadow-brand-sm);
@@ -408,26 +381,21 @@ export default {
   gap: 16px;
 }
 
-.input-block {
+.auth-field {
   display: grid;
   gap: 8px;
 }
 
-.input-block span {
-  font-size: 0.84rem;
+.auth-field > span {
+  font-size: 0.82rem;
   font-weight: 700;
   color: var(--text-secondary);
 }
 
-.password-label-row {
+.auth-field__control {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-}
-
-.input-field-wrap {
-  display: flex;
-  align-items: center;
+  gap: 10px;
   padding: 0 14px;
   border-radius: var(--radius-lg);
   background: var(--surface-soft);
@@ -435,20 +403,25 @@ export default {
   transition: all var(--transition-fast);
 }
 
-.input-field-wrap:focus-within {
+.auth-field__control:focus-within {
   background: var(--surface);
   border-color: var(--brand-light);
   box-shadow: 0 0 0 4px var(--brand-glow);
 }
 
-.input-icon {
+.auth-field__control > i {
   color: var(--text-subtle);
-  font-size: 0.95rem;
-  margin-right: 10px;
+  font-size: 0.98rem;
+  flex-shrink: 0;
 }
 
-.input-field-wrap input {
-  width: 100%;
+.auth-field__control:focus-within > i {
+  color: var(--brand);
+}
+
+.auth-field__control input {
+  flex: 1;
+  min-width: 0;
   padding: 14px 0;
   border: none;
   background: transparent;
@@ -458,66 +431,86 @@ export default {
   font-weight: 500;
 }
 
-.input-field-wrap input::placeholder {
+.auth-field__control input::placeholder {
   color: var(--text-subtle);
+  font-weight: 400;
 }
 
-.password-toggle-btn {
+.auth-field__toggle {
+  border: none;
+  background: transparent;
   color: var(--text-subtle);
-  font-size: 0.95rem;
   padding: 6px;
-  transition: color var(--transition-fast);
+  cursor: pointer;
 }
 
-.password-toggle-btn:hover {
-  color: var(--text-main);
-}
-
-.auth-submit-btn {
+.auth-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
   width: 100%;
-  padding: 15px;
-  font-size: 0.95rem;
-  border-radius: var(--radius-lg);
   margin-top: 4px;
+  padding: 15px;
+  border: none;
+  border-radius: var(--radius-lg);
+  background: var(--brand-gradient);
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: var(--shadow-brand-sm);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.auth-submit:active {
+  transform: scale(0.985);
+}
+
+.auth-submit:disabled {
+  opacity: 0.7;
+  cursor: default;
 }
 
 .auth-feedback {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   padding: 12px 14px;
   border-radius: var(--radius-md);
   font-size: 0.84rem;
   font-weight: 600;
-  line-height: 1.4;
+  line-height: 1.45;
+  background: var(--success-soft);
+  color: var(--success);
+  border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
 .auth-feedback.is-error {
   background: var(--danger-soft);
   color: var(--danger);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.2);
 }
 
-.auth-feedback.is-info {
-  background: var(--brand-soft);
-  color: var(--brand);
-  border: 1px solid rgba(99, 102, 241, 0.2);
-}
-
-.auth-card__footer {
+.auth-footnote {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 12px 18px;
-  padding-top: 6px;
+  gap: 7px;
+  margin: 0;
+  color: var(--text-subtle);
+  font-size: 0.76rem;
+  font-weight: 600;
 }
 
-.auth-mode-link {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  font: inherit;
+.auth-footnote i {
+  color: var(--success);
+}
+
+@media (max-width: 360px) {
+  .auth-card {
+    margin-inline: 6px;
+    padding-inline: 16px;
+  }
 }
 </style>

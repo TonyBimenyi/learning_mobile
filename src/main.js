@@ -21,8 +21,8 @@ import { translate } from './services/i18n';
 // Settings screen still overrides anything here.
 //
 // const APP_BASE_URL = '';                                   // local dev / Vite proxy
-// const APP_BASE_URL = 'http://192.168.1.10:8000';           // phone on same Wi-Fi
-const APP_BASE_URL = 'https://lying-schnapps-doorknob.ngrok-free.dev'; // ngrok / public tunnel
+const APP_BASE_URL = 'http://127.0.0.1:8000';           // phone on same Wi-Fi
+// const APP_BASE_URL = 'https://lying-schnapps-doorknob.ngrok-free.dev'; // ngrok / public tunnel
 // const APP_BASE_URL = 'https://api.yourdomain.com';         // production
 // const APP_BASE_URL = '';
 
