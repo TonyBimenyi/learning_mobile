@@ -211,6 +211,18 @@ export async function loginUser(payload) {
   return auth;
 }
 
+export async function registerUser(payload) {
+  const auth = await request('/api/auth/register/', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  saveAuth({
+    token: auth?.token,
+    user: auth,
+  });
+  return auth;
+}
+
 export async function getEnrollments() {
   // Callers already handle failures; surface the error so auth issues aren't
   // silently reported as "no enrollment" (which would prompt users to pay twice).

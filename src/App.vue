@@ -113,6 +113,31 @@ export default {
       } catch (_) {
         // Not on native – ignore
       }
+
+      // ── Deep link from the AfriPay return page ────────────────────────────
+      // soma://open/course/<id>?afripay=...&message=... -> /course/<id>?...
+      const handleDeepLink = (urlString) => {
+        try {
+          const url = new URL(urlString);
+          if (url.protocol === 'soma:' && url.hostname === 'open') {
+            const target = url.pathname + url.search;
+            if (target.startsWith('/course/')) {
+              router.push(target);
+            }
+          }
+        } catch (_) {
+          // Ignore malformed URLs
+        }
+      };
+
+      try {
+        await CapApp.addListener('appUrlOpen', (event) => handleDeepLink(event.url));
+        // Cold start: the link may have launched the app before listeners existed.
+        const launch = await CapApp.getLaunchUrl();
+        if (launch && launch.url) handleDeepLink(launch.url);
+      } catch (_) {
+        // Not on native – ignore
+      }
     });
 
     return {

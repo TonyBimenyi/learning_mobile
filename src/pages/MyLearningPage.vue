@@ -372,17 +372,22 @@ export default {
     });
 
     const enrolledCourseIds = computed(() =>
-      enrollments.value
-        .filter((enrollment) => enrollment.paymentStatus === 'success')
-        .map((enrollment) => enrollment.courseId)
+      enrollments.value.map((enrollment) => enrollment.courseId)
     );
 
+    // Access comes from the backend (confirmed AfripayResponse), not from the
+    // local payment-status string. A paid course appears only once unlocked.
     const activeCourses = computed(() => {
-      if (enrolledCourseIds.value.length) {
-        return courses.value.filter((course) => enrolledCourseIds.value.includes(course.id));
-      }
       const progressCourseIds = [...new Set(continueWatching.value.map((entry) => entry.courseId))];
-      return courses.value.filter((course) => progressCourseIds.includes(course.id));
+      return courses.value.filter((course) => {
+        const hasAccess = typeof course.hasAccess === 'boolean'
+          ? course.hasAccess
+          : enrolledCourseIds.value.includes(course.id);
+        if (!hasAccess) return false;
+        return Number(course.price || 0) === 0
+          || enrolledCourseIds.value.includes(course.id)
+          || progressCourseIds.includes(course.id);
+      });
     });
 
     const completedCourses = computed(() =>

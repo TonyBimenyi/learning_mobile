@@ -83,9 +83,9 @@
                   </div>
                 </transition>
 
-                <div class="video-overlay"></div>
+                <div v-if="!isCurrentLessonLocked" class="video-overlay"></div>
                 <CustomVideoPlayer
-                  v-if="hasDbVideo"
+                  v-if="hasDbVideo && !isCurrentLessonLocked"
                   ref="customVideoPlayer"
                   :src="selectedLessonSource"
                   :poster="course.thumbnail"
@@ -104,7 +104,7 @@
                   @error="handleVideoError"
                 />
                 <iframe
-                  v-else-if="selectedLesson.youtubeId"
+                  v-else-if="selectedLesson.youtubeId && !isCurrentLessonLocked"
                   :src="iframeUrl"
                   :title="selectedLesson.title"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -115,6 +115,15 @@
                   :src="course.thumbnail"
                   :alt="selectedLesson.title"
                 />
+                <div v-if="isCurrentLessonLocked" class="video-lock-overlay">
+                  <div class="video-lock-overlay__icon"><i class="fa-solid fa-lock"></i></div>
+                  <strong>{{ t('courseLocked') }}</strong>
+                  <p>{{ t('lessonLocked') }}</p>
+                  <button class="primary-button video-lock-overlay__btn" type="button" @click="enrollInCourse">
+                    <i class="fa-solid fa-lock-open"></i>
+                    <span>{{ enrollButtonLabel }}</span>
+                  </button>
+                </div>
               </div>
               <div class="lesson-chip">
                 <span class="chip-dot"></span>
@@ -169,6 +178,16 @@
               >
                 <i class="fa-solid fa-trash-can"></i>
                 <span>{{ t('remove') }}</span>
+              </button>
+
+              <button
+                v-else-if="isCurrentLessonLocked"
+                class="ghost-button compact-btn offline-action-btn"
+                type="button"
+                @click="startDownloadCurrent()"
+              >
+                <i class="fa-solid fa-lock"></i>
+                <span>{{ t('courseLocked') }}</span>
               </button>
 
               <button
@@ -240,6 +259,14 @@
               {{ paymentNotice }}
             </p>
 
+            <div v-if="isCourseLocked" class="course-lock-card">
+              <div class="course-lock-card__icon"><i class="fa-solid fa-lock"></i></div>
+              <div class="course-lock-card__copy">
+                <strong>{{ t('courseLocked') }}</strong>
+                <p>{{ t('courseLockedHint') }}</p>
+              </div>
+            </div>
+
             <div class="course-summary__footer">
               <div class="course-summary__price">
                 <small>{{ t('coursePrice') }}</small>
@@ -272,13 +299,20 @@
                 v-for="(lesson, index) in course.curriculum || []"
                 :key="`lesson-${course.id}-${index}`"
                 class="lesson-tab"
-                :class="{ 'is-active': selectedLessonIndex === index, 'is-complete': isLessonComplete(index) }"
+                :class="{
+                  'is-active': selectedLessonIndex === index,
+                  'is-complete': isLessonComplete(index),
+                  'is-locked': !canPlayLesson(lesson),
+                }"
                 @click="selectLesson(index)"
               >
                 <div class="lesson-tab__badge">{{ index + 1 }}</div>
                 <div class="lesson-tab__copy">
                   <div class="lesson-tab__meta">
                     <span>{{ lesson.duration || t('flexible') }} &bull; {{ lesson.type || t('video') }}</span>
+                    <span v-if="lesson.freePreview && !hasCourseAccess" class="lesson-free-pill">
+                      {{ t('freePreview') }}
+                    </span>
                     <span v-if="isLessonDownloadedById(getLessonId(lesson, index))" class="lesson-offline-pill">
                       <i class="fa-solid fa-bolt"></i> {{ t('offline') }}
                     </span>
@@ -290,7 +324,8 @@
                 </div>
                 <div class="lesson-tab__trailing">
                   <span class="lesson-progress">{{ getLessonProgress(index) }}%</span>
-                  <i class="fa-solid fa-play"></i>
+                  <i v-if="!canPlayLesson(lesson)" class="fa-solid fa-lock lesson-lock-icon"></i>
+                  <i v-else class="fa-solid fa-lock-open lesson-unlocked-icon"></i>
                 </div>
               </button>
             </div>
@@ -968,6 +1003,11 @@ export default {
         ? targetLesson
         : selectedLesson.value;
       const index = (typeof targetIndex === 'number') ? targetIndex : selectedLessonIndex.value;
+      if (!canPlayLesson(lesson)) {
+        paymentNotice.value = translate('lessonLocked');
+        paymentNoticeTone.value = 'warning';
+        return;
+      }
       if (!lesson || !course.value) {
         paymentNotice.value = translate('selectLessonFirst');
         paymentNoticeTone.value = 'warning';
@@ -1093,6 +1133,17 @@ export default {
 
     const instructorLabel = computed(() => course.value?.instructor || 'Twige Academy');
     const priceLabel = computed(() => formatCurrency(course.value?.price || 0));
+
+    // `hasAccess` is computed by the backend from confirmed AfripayResponse
+    // records — never from browser query params. Offline-cached courses treat
+    // a missing flag as locked so a stale cache can't unlock paid content.
+    const hasCourseAccess = computed(() =>
+      course.value ? course.value.hasAccess === true || Number(course.value.price || 0) === 0 : false,
+    );
+    const isPaidCourse = computed(() => Number(course.value?.price || 0) > 0);
+    const isCourseLocked = computed(() => isPaidCourse.value && !hasCourseAccess.value);
+    const canPlayLesson = (lesson) => hasCourseAccess.value || Boolean(lesson?.freePreview);
+    const isCurrentLessonLocked = computed(() => !canPlayLesson(selectedLesson.value));
     const lessonPositionLabel = computed(() => {
       if (!course.value || !selectedLesson.value) {
         return '';
@@ -1318,6 +1369,12 @@ export default {
     const getLessonProgress = (index) => Math.round(Number(getProgressEntry(index)?.progressPercent || 0));
 
     const selectLesson = async (index) => {
+      const lesson = course.value?.curriculum?.[index] || null;
+      if (!canPlayLesson(lesson)) {
+        paymentNotice.value = translate('lessonLocked');
+        paymentNoticeTone.value = 'warning';
+        return;
+      }
       selectedLessonIndex.value = index;
       selectedLesson.value = course.value?.curriculum?.[index] || null;
       useProxyStream.value = false;
@@ -1382,7 +1439,22 @@ export default {
       }
     };
 
+    // AfriPay appends a human-readable `message` to the return URL (e.g. the
+    // Enoti "dial *161#" instructions). Show it verbatim as text — never HTML.
+    const formatGatewayMessage = (raw) =>
+      String(raw || '')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/\r\n?/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+
     const syncPaymentNotice = () => {
+      const gatewayMessage = formatGatewayMessage(route.query.message);
+      if (gatewayMessage) {
+        paymentNotice.value = gatewayMessage;
+        paymentNoticeTone.value = 'gateway';
+        return;
+      }
       const token = String(route.query.afripay || '').trim();
       if (!token) {
         return;
@@ -1457,6 +1529,11 @@ export default {
 
     const dismissSplashAndPlay = () => {
       showVideoSplash.value = false;
+      if (!canPlayLesson(selectedLesson.value)) {
+        paymentNotice.value = translate('lessonLocked');
+        paymentNoticeTone.value = 'warning';
+        return;
+      }
       customVideoPlayer.value?.playVideo?.();
     };
 
@@ -1859,6 +1936,23 @@ export default {
       }
     );
 
+    // The AfriPay deep link can reuse this component when the app is already
+    // open, so react to the incoming message instead of relying on onMounted.
+    watch(
+      () => route.query.message,
+      () => {
+        syncPaymentNotice();
+        // The provider callback may have confirmed payment while we were away.
+        // Refresh both the authoritative access flag and the enrollments.
+        getCourse(props.id)
+          .then((data) => { if (data) applyCourseData(data); })
+          .catch(() => {});
+        getEnrollments()
+          .then((e) => { enrollments.value = e || []; syncPaymentNotice(); })
+          .catch(() => {});
+      }
+    );
+
     return {
       activeCommunityTab,
       averageRating,
@@ -1898,12 +1992,17 @@ export default {
       handleVideoLoaded,
       handleVideoPlay,
       handleVideoTimeUpdate,
+      hasCourseAccess,
       hasDbVideo,
+      canPlayLesson,
       iframeUrl,
       instructorLabel,
+      isCourseLocked,
       isCurrentLessonDownloaded,
+      isCurrentLessonLocked,
       isDownloadingCurrent,
       isLoading,
+      isPaidCourse,
       isSubmittingComment,
       isLessonComplete,
       isLessonDownloadedById,
@@ -2491,7 +2590,15 @@ export default {
   border-radius: var(--radius-md);
   font-size: 0.82rem;
   font-weight: 600;
-  line-height: 1.4;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.payment-notice.is-gateway {
+  background: var(--brand-soft);
+  color: var(--text-main);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  font-weight: 500;
 }
 
 .payment-notice.is-info {
@@ -2516,6 +2623,108 @@ export default {
   background: var(--danger-soft);
   color: var(--danger);
   border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+/* Locked paid courses */
+.course-lock-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  margin-bottom: 14px;
+}
+
+.course-lock-card__icon {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--warning-soft);
+  color: #d97706;
+}
+
+.course-lock-card__copy strong {
+  display: block;
+  font-size: 0.88rem;
+  color: var(--text-main);
+}
+
+.course-lock-card__copy p {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.video-lock-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+  text-align: center;
+  background: rgba(15, 23, 42, 0.82);
+  backdrop-filter: blur(6px);
+  color: #ffffff;
+}
+
+.video-lock-overlay__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 1.25rem;
+}
+
+.video-lock-overlay strong {
+  font-size: 1rem;
+}
+
+.video-lock-overlay p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(241, 245, 249, 0.8);
+  max-width: 22rem;
+}
+
+.video-lock-overlay__btn {
+  margin-top: 6px;
+  padding: 10px 18px;
+  font-size: 0.85rem;
+}
+
+.lesson-tab.is-locked {
+  opacity: 0.7;
+}
+
+.lesson-free-pill {
+  color: var(--success);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.lesson-lock-icon,
+.lesson-unlocked-icon {
+  font-size: 0.9rem;
+}
+
+.lesson-lock-icon {
+  color: var(--text-muted);
+}
+
+.lesson-unlocked-icon {
+  color: var(--success);
 }
 
 .course-summary__footer {
