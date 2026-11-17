@@ -1,11 +1,11 @@
-import { clearAuth, getGuestId, getToken, saveAuth, getStoredUser } from './storage';
+import { clearAuth, getApiBaseUrl, getGuestId, getToken, saveAuth, getStoredUser } from './storage';
 
 // ─── Base URL ────────────────────────────────────────────────────────────────
 // Set in main.js via window.__APP_BASE_URL__
 // '' = local (Vite proxy → :8000) | 'https://...' = any remote server
 // ─────────────────────────────────────────────────────────────────────────────
 function getBaseUrl() {
-  return (window.__APP_BASE_URL__ || '').replace(/\/$/, '');
+  return getApiBaseUrl();
 }
 
 /** Build a full media/asset URL from a relative path. */
@@ -56,15 +56,16 @@ async function request(path, options = {}) {
 
   if (!response.ok) {
     const fallbackMessage = `Request failed with status ${response.status}`;
+    let message = fallbackMessage;
     try {
       const payload = await response.json();
-      throw new Error(payload.error || payload.detail || fallbackMessage);
-    } catch (error) {
-      if (error instanceof Error && error.message !== 'Unexpected end of JSON input') {
-        throw error;
-      }
-      throw new Error(fallbackMessage);
+      message = payload.error || payload.detail || fallbackMessage;
+    } catch (_) {
+      // Non-JSON error body — keep the status-based message.
     }
+    const error = new Error(String(message));
+    error.status = response.status;
+    throw error;
   }
 
   if (response.status === 204) return null;
@@ -190,7 +191,7 @@ export async function getCurrentUser() {
     saveAuth({ user });
     return user;
   } catch (error) {
-    if (error instanceof Error && String(error.message).includes('401')) {
+    if (error?.status === 401 || String(error?.message || '').includes('401')) {
       clearAuth();
       return null;
     }
@@ -211,11 +212,9 @@ export async function loginUser(payload) {
 }
 
 export async function getEnrollments() {
-  try {
-    return await request('/api/enrollments/');
-  } catch (error) {
-    return [];
-  }
+  // Callers already handle failures; surface the error so auth issues aren't
+  // silently reported as "no enrollment" (which would prompt users to pay twice).
+  return request('/api/enrollments/');
 }
 
 export async function startAfripayCheckout(payload) {

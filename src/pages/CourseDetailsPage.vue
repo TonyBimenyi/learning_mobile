@@ -653,10 +653,21 @@
           </section>
         </section>
 
-        <section v-else-if="isLoading" class="surface-card empty-card">
-          <div class="empty-icon"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
-          <strong>{{ t('loadingCourse') }}</strong>
-          <span class="section-caption">{{ t('preparingCourse') }}</span>
+        <section v-else-if="isLoading" class="course-loading-skeleton">
+          <div class="surface-card course-loading-skeleton__player">
+            <SkeletonLoader type="rect" width="100%" height="220px" rounded />
+          </div>
+          <div class="surface-card course-loading-skeleton__summary">
+            <SkeletonLoader type="text" width="40%" height="12px" rounded />
+            <SkeletonLoader type="text" width="75%" height="24px" rounded />
+            <SkeletonLoader type="text" width="55%" height="14px" rounded />
+            <div class="course-loading-skeleton__pills">
+              <SkeletonLoader v-for="n in 4" :key="n" type="rect" width="90px" height="30px" rounded />
+            </div>
+          </div>
+          <div class="course-loading-skeleton__list">
+            <SkeletonCard v-for="n in 3" :key="n" />
+          </div>
         </section>
 
         <section v-else class="surface-card empty-card offline-fallback-card">
@@ -683,6 +694,8 @@ import { IonContent, IonPage } from '@ionic/vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import CustomVideoPlayer from '@/components/CustomVideoPlayer.vue';
+import SkeletonCard from '@/components/SkeletonCard.vue';
+import SkeletonLoader from '@/components/SkeletonLoader.vue';
 import {
   createDiscussion,
   createReview,
@@ -844,13 +857,14 @@ function normalizeReview(review) {
 
 export default {
   name: 'CourseDetailsPage',
-  components: { IonContent, IonPage, CustomVideoPlayer },
+  components: { IonContent, IonPage, CustomVideoPlayer, SkeletonCard, SkeletonLoader },
   props: ['id'],
   setup(props) {
     const router = useRouter();
     const route = useRoute();
     const communitySection = ref(null);
     const playerHero = ref(null);
+    const showVideoSplash = ref(false);
     const customVideoPlayer = ref(null);
     const course = ref(null);
     const enrollments = ref([]);
@@ -1437,6 +1451,15 @@ export default {
 
     // Insert the current playback position into the comment text so the user
     // can write things like "I did not understand at 2:30".
+    const dismissSplash = () => {
+      showVideoSplash.value = false;
+    };
+
+    const dismissSplashAndPlay = () => {
+      showVideoSplash.value = false;
+      customVideoPlayer.value?.playVideo?.();
+    };
+
     const insertCurrentVideoTime = () => {
       const stamp = formatClock(currentVideoTime.value || getSavedSeconds());
       const current = String(questionForm.value.text || '').trim();
@@ -1548,21 +1571,25 @@ export default {
         return;
       }
 
-      const created = await createReview({
-        courseId: course.value.id,
-        author_id: user.value?.id || '',
-        authorName: userDisplayName.value,
-        avatar: userAvatar.value,
-        rating: reviewForm.value.rating,
-        text,
-      });
+      try {
+        const created = await createReview({
+          courseId: course.value.id,
+          author_id: user.value?.id || '',
+          authorName: userDisplayName.value,
+          avatar: userAvatar.value,
+          rating: reviewForm.value.rating,
+          text,
+        });
 
-      reviews.value = [normalizeReview(created), ...reviews.value];
-      reviewForm.value = {
-        rating: 5,
-        text: '',
-      };
-      showToast(translate('reviewPosted'), 'success');
+        reviews.value = [normalizeReview(created), ...reviews.value];
+        reviewForm.value = {
+          rating: 5,
+          text: '',
+        };
+        showToast(translate('reviewPosted'), 'success');
+      } catch (error) {
+        showToast(error?.message || translate('failedSubmitReview'), 'error');
+      }
     };
 
     const handleLikeDiscussion = async (discussion) => {
@@ -1904,6 +1931,9 @@ export default {
       selectedLesson,
       selectedLessonIndex,
       selectedLessonSource,
+      showVideoSplash,
+      dismissSplash,
+      dismissSplashAndPlay,
       showAllComments,
       startResumePlayback,
       sortedDiscussions,
@@ -1928,6 +1958,43 @@ export default {
 .course-details-shell {
   display: grid;
   gap: 20px;
+}
+
+/* Course loading skeleton */
+.course-loading-skeleton {
+  display: grid;
+  gap: 18px;
+}
+
+.course-loading-skeleton__player {
+  padding: 12px;
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+}
+
+.course-loading-skeleton__summary {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  border-radius: var(--radius-xl);
+}
+
+.course-loading-skeleton__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.course-loading-skeleton__list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .course-loading-skeleton__list {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Player Hero */

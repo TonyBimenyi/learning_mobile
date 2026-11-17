@@ -99,7 +99,7 @@ export default {
           if (now - lastBackPressTime < 2000) {
             // Second back press within 2s -> exit / minimize app
             showExitToast.value = false;
-            CapApp.exitApp();
+            CapApp.exitApp().catch(() => {});
           } else {
             // First back press -> prompt user with toast
             lastBackPressTime = now;

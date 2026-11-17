@@ -46,7 +46,10 @@ router.beforeEach((to) => {
       query: { redirect: to.fullPath },
     };
   }
-  if (to.name === 'login' && hasToken) {
+  // Only bounce an already-logged-in user away from the bare /login page.
+  // If a redirect target was supplied (e.g. /profile asked for login because a
+  // session expired), honour it — otherwise we create a profile↔login loop.
+  if (to.name === 'login' && hasToken && !to.query.redirect) {
     return { name: 'profile' };
   }
   return true;

@@ -379,15 +379,25 @@ export default {
     });
 
     const completedCourses = computed(() =>
-      activeCourses.value.filter((course) => getCourseProgress(course, progressMap.value).progressPercent >= 90).length
+      activeCourses.value.filter((course) => getCourseProgress(course, progressMap.value).progressPercent >= 95).length
     );
 
     const loadDashboard = async () => {
       isLoading.value = true;
-      const [c, e] = await Promise.all([getCourses(), getEnrollments()]);
-      courses.value = c || [];
-      enrollments.value = e || [];
-      isLoading.value = false;
+      try {
+        const [c, e] = await Promise.all([
+          getCourses().catch(() => []),
+          getEnrollments().catch(() => []),
+        ]);
+        courses.value = c || [];
+        enrollments.value = e || [];
+      } catch (err) {
+        console.warn('Could not load learning dashboard', err);
+        courses.value = [];
+        enrollments.value = [];
+      } finally {
+        isLoading.value = false;
+      }
     };
 
     const loadDownloads = async () => {

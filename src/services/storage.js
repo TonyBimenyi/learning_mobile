@@ -153,6 +153,17 @@ export function getCustomBaseUrl() {
   return window.localStorage.getItem(APP_KEYS.serverUrl) || null;
 }
 
+/**
+ * The API base used by every request. A runtime value saved in Settings wins
+ * over the build-time VITE_API_BASE — critical for the APK, where the build-time
+ * value is empty and relative /api/... calls would hit capacitor://localhost.
+ */
+export function getApiBaseUrl() {
+  const custom = getCustomBaseUrl();
+  if (custom) return custom.replace(/\/$/, '');
+  return (typeof window !== 'undefined' && window.__APP_BASE_URL__ || '').replace(/\/$/, '');
+}
+
 /** Saves a custom server base URL. Pass null or empty string to reset to default. */
 export function saveCustomBaseUrl(url) {
   const cleaned = (url || '').trim().replace(/\/$/, '');

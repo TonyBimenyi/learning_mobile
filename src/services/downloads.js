@@ -5,7 +5,7 @@
  * preventing external extraction or file sharing while allowing full in-app offline playback.
  */
 
-import { getToken } from './storage';
+import { getApiBaseUrl, getToken } from './storage';
 
 const DB_NAME = 'twige_offline_vault';
 const DB_VERSION = 2;
@@ -20,7 +20,7 @@ const activeProgress = new Map(); // tracks current progress percent
 
 /** Get absolute base URL (from main.js window.__APP_BASE_URL__) */
 function getBaseUrl() {
-  return (window.__APP_BASE_URL__ || '').replace(/\/$/, '');
+  return getApiBaseUrl();
 }
 
 /** Resolve a possibly-relative video URL to absolute */

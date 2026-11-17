@@ -280,7 +280,7 @@ import {
   getCategoryIcon,
   getVideoPreview,
 } from '@/services/course-helpers';
-import { getContinueWatchingList, seedDemoProgress } from '@/services/storage';
+import { getContinueWatchingList } from '@/services/storage';
 
 export default {
   name: 'HomePage',
@@ -358,7 +358,6 @@ export default {
       this.homepageContent = homepageContent;
       this.courses = courses || [];
       this.user = user;
-      seedDemoProgress(this.courses);
       this.continueWatching = getContinueWatchingList();
       this.isLoading = false; // loading complete
     },
@@ -547,11 +546,12 @@ export default {
   font-size: 0.95rem;
 }
 
-.hero-search-field input {
+/* Higher specificity so the dark-mode form rule can't add a background. */
+.hero-search-field input[type='text'] {
   width: 100%;
   border: none;
   outline: none;
-  background: transparent;
+  background: transparent !important;
   color: #ffffff;
   font-size: 0.92rem;
   font-weight: 500;

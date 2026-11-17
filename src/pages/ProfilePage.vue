@@ -2,9 +2,17 @@
   <ion-page>
     <ion-content :fullscreen="true" class="app-screen">
       <div class="screen-shell">
-        <section v-if="isLoading" class="surface-card profile-loading-card">
-          <div class="loading-spinner"></div>
-          <strong>{{ t('loadingProfile') }}</strong>
+        <section v-if="isLoading" class="profile-skeleton">
+          <div class="surface-card profile-skeleton__hero">
+            <SkeletonLoader type="circle" width="78px" height="78px" />
+            <div class="profile-skeleton__hero-lines">
+              <SkeletonLoader type="text" width="45%" height="20px" rounded />
+              <SkeletonLoader type="text" width="30%" height="13px" rounded />
+            </div>
+          </div>
+          <div class="profile-skeleton__grid">
+            <SkeletonCard v-for="n in 4" :key="n" />
+          </div>
         </section>
 
         <template v-else>
@@ -284,6 +292,33 @@
             </div>
           </section>
 
+          <!-- Server / Connection Card -->
+          <section class="surface-card form-section-card server-card">
+            <div class="section-heading">
+              <div>
+                <p class="section-kicker"><i class="fa-solid fa-server"></i> {{ t('server') }}</p>
+                <h3>{{ t('serverConnection') }}</h3>
+              </div>
+            </div>
+            <label class="input-block">
+              <span>{{ t('serverUrl') }}</span>
+              <div class="input-field-wrap">
+                <i class="fa-solid fa-link input-icon"></i>
+                <input v-model="customServerUrl" type="url" placeholder="https://api.yourdomain.com" />
+              </div>
+            </label>
+            <div class="server-actions">
+              <span class="server-status" :class="{ 'is-error': serverSaveStatus === 'error' }">
+                <i :class="serverSaveStatus === 'saved' ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-info'"></i>
+                {{ serverSaveStatus === 'saved' ? t('serverSaved') : serverSaveStatus === 'error' ? t('serverInvalid') : t('serverHint') }}
+              </span>
+              <button class="primary-button pwd-save-btn" type="button" @click="saveServerUrl">
+                <i class="fa-solid fa-floppy-disk"></i>
+                <span>{{ t('save') }}</span>
+              </button>
+            </div>
+          </section>
+
           <!-- Security & Password Card -->
           <section class="surface-card form-section-card security-card">
             <div class="section-heading">
@@ -365,6 +400,7 @@
 
             <div class="support-actions-grid">
               <a
+                v-if="whatsappSupportUrl"
                 :href="whatsappSupportUrl"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -438,7 +474,7 @@
           </footer>
         </template>
 
-        <BottomNav v-if="!isLoading" />
+        <BottomNav />
       </div>
     </ion-content>
   </ion-page>
@@ -450,13 +486,19 @@ import { IonContent, IonPage } from '@ionic/vue';
 import { onMounted, onUnmounted, ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import BottomNav from '@/components/BottomNav.vue';
+import SkeletonCard from '@/components/SkeletonCard.vue';
+import SkeletonLoader from '@/components/SkeletonLoader.vue';
 import { getEnrollments, getCurrentUser, updateProfile } from '@/services/api';
 import {
   clearAuth,
   clearCache,
   clearProgress,
   getContinueWatchingList,
+  getCustomBaseUrl,
   getSettings,
+  getStoredUser,
+  getToken,
+  saveCustomBaseUrl,
   saveSettings,
 } from '@/services/storage';
 import { clearAllDownloads, getAllDownloads, getTotalOfflineStorageUsage } from '@/services/downloads';
@@ -465,7 +507,7 @@ import { languageOptions, translations } from '@/data/translations';
 
 export default {
   name: 'ProfilePage',
-  components: { BottomNav, IonContent, IonPage },
+  components: { BottomNav, IonContent, IonPage, SkeletonCard, SkeletonLoader },
   setup() {
     const router = useRouter();
     const isLoading = ref(true);
@@ -477,6 +519,8 @@ export default {
     const showPasswordFields = ref(false);
     const pwdForm = ref({ currentPassword: '', newPassword: '', confirmPassword: '' });
     const pwdFeedback = ref({ message: '', error: false });
+    const customServerUrl = ref(getCustomBaseUrl() || '');
+    const serverSaveStatus = ref('idle');
     const statusMessage = ref(translate('profileSyncNote'));
     const downloadsCount = ref(0);
     const totalStorageFormatted = ref('0 B');
@@ -559,17 +603,14 @@ export default {
         return;
       }
       saveCustomBaseUrl(val);
+      customServerUrl.value = val;
       serverSaveStatus.value = 'saved';
       setTimeout(() => { serverSaveStatus.value = 'idle'; }, 3000);
     };
 
-    const applyPreset = (url) => {
-      customServerUrl.value = url;
-      saveServerUrl();
-    };
-
     const whatsappSupportUrl = computed(() => {
-      const phone = '25769000000';
+      const phone = (import.meta.env.VITE_SUPPORT_WHATSAPP || '').replace(/[^0-9]/g, '');
+      if (!phone) return '';
       const msg = encodeURIComponent(`Hello Twige Team, my account is ${user.value?.email || translate('student')}. I need help with my courses.`);
       return `https://wa.me/${phone}?text=${msg}`;
     });
@@ -578,7 +619,7 @@ export default {
       const shareData = {
         title: translate('appNameFull'),
         text: 'Learn practical tech and business skills on Twige with offline video downloads!',
-        url: window.location.origin,
+        url: import.meta.env.VITE_SHARE_URL || 'https://soma.bi',
       };
       if (typeof navigator !== 'undefined' && navigator.share) {
         try {
@@ -588,10 +629,10 @@ export default {
         }
       } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
         try {
-          await navigator.clipboard.writeText(window.location.origin);
+          await navigator.clipboard.writeText(shareData.url);
           statusMessage.value = 'App link copied to clipboard!';
         } catch {
-          statusMessage.value = 'Share link: ' + window.location.origin;
+          statusMessage.value = 'Share link: ' + shareData.url;
         }
       }
     };
@@ -612,20 +653,34 @@ export default {
     const loadProfile = async () => {
       isLoading.value = true;
       try {
-        const [u, e] = await Promise.all([getCurrentUser(), getEnrollments().catch(() => [])]);
+        // Seed from the cached user so switching tabs never blanks the page.
+        const cached = getStoredUser();
+        const hasId = (value) => Boolean(value?.id || value?.extId);
+        if (hasId(cached)) user.value = cached;
 
-        if (!u?.id) {
+        const [u, e] = await Promise.all([
+          getCurrentUser().catch(() => null),
+          getEnrollments().catch(() => []),
+        ]);
+
+        enrollments.value = e || [];
+
+        if (hasId(u) || hasId(cached)) {
+          const profile = hasId(u) ? u : cached;
+          user.value = profile;
+          form.value = {
+            whatsapp: profile?.whatsapp || '',
+            specialty: profile?.specialty || '',
+            bio: profile?.bio || '',
+          };
+        } else if (!getToken()) {
+          // Genuinely signed out — go to login (the router now honours this
+          // redirect instead of bouncing straight back to /profile).
           router.replace({ name: 'login', query: { redirect: '/profile' } });
           return;
         }
-
-        user.value = u;
-        enrollments.value = e || [];
-        form.value = {
-          whatsapp: u?.whatsapp || '',
-          specialty: u?.specialty || '',
-          bio: u?.bio || '',
-        };
+        // If a token exists but the fetch failed (offline / expired), stay put
+        // rather than looping profile → login → profile.
       } finally {
         isLoading.value = false;
       }
@@ -703,6 +758,9 @@ export default {
       showPasswordFields,
       pwdForm,
       pwdFeedback,
+      customServerUrl,
+      serverSaveStatus,
+      saveServerUrl,
       handlePasswordUpdate,
       handleClearOfflineVault,
       whatsappSupportUrl,
@@ -733,27 +791,36 @@ export default {
 </script>
 
 <style scoped>
-/* Loading Card */
-.profile-loading-card {
+/* Profile skeleton loading */
+.profile-skeleton {
+  display: grid;
+  gap: 16px;
+}
+
+.profile-skeleton__hero {
   display: flex;
-  flex-direction: column;
   align-items: center;
+  gap: 16px;
+  padding: 24px;
+  border-radius: var(--radius-2xl);
+}
+
+.profile-skeleton__hero-lines {
+  display: grid;
+  gap: 10px;
+  flex: 1;
+}
+
+.profile-skeleton__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
-  padding: 40px;
-  text-align: center;
 }
 
-.loading-spinner {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 3px solid var(--brand-soft);
-  border-top-color: var(--brand);
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
+@media (max-width: 480px) {
+  .profile-skeleton__grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Profile Hero */

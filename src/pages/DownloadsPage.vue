@@ -4,12 +4,9 @@
       <div class="screen-shell">
         <!-- Top Navigation Bar -->
         <header class="page-top-bar">
-          <button class="back-btn" type="button" :aria-label="t('goBack')" @click="$router.back()">
-            <i class="fa-solid fa-arrow-left"></i>
-          </button>
           <div class="top-bar-title">
+            <span class="top-kicker"><i class="fa-solid fa-download"></i> {{ t('offlineLibrary') }}</span>
             <h2>{{ t('downloads') }}</h2>
-            <span class="sub-caption">{{ downloads.length }} {{ downloads.length === 1 ? 'lesson' : 'lessons' }} &bull; {{ totalStorageUsed }}</span>
           </div>
           <button
             v-if="downloads.length"
@@ -23,43 +20,80 @@
           </button>
         </header>
 
-        <!-- Storage & Sandbox Status Card -->
-        <section class="surface-card storage-vault-card">
-          <div class="vault-header">
-            <div class="vault-icon-badge">
+        <!-- Vault Hero Card -->
+        <section class="vault-hero">
+          <div class="vault-hero__glow"></div>
+          <div class="vault-hero__grid"></div>
+
+          <div class="vault-hero__head">
+            <div class="vault-hero__icon">
               <i class="fa-solid fa-hard-drive"></i>
             </div>
-            <div class="vault-heading">
-              <div class="vault-tags">
-                <span class="secure-pill">
-                  <i class="fa-solid fa-shield-halved"></i> {{ t('appSandboxProtected') }}
-                </span>
-                <span class="usage-pill">{{ totalStorageUsed }}</span>
-              </div>
+            <div class="vault-hero__head-copy">
+              <span class="secure-pill">
+                <i class="fa-solid fa-shield-halved"></i> {{ t('appSandboxProtected') }}
+              </span>
               <h3>{{ t('offlineVideoVault') }}</h3>
               <p>{{ t('offlineVaultDesc') }}</p>
             </div>
           </div>
 
-          <div v-if="downloads.length" class="vault-stats-row">
-            <div class="vault-stat">
-              <small>{{ t('offlineLessons') }}</small>
-              <strong>{{ downloads.length }}</strong>
-            </div>
-            <div class="vault-stat">
+          <div class="vault-hero__usage">
+            <div class="usage-main">
               <small>{{ t('storageUsed') }}</small>
               <strong>{{ totalStorageUsed }}</strong>
             </div>
-            <div class="vault-stat">
-              <small>{{ t('networkNeeded') }}</small>
-              <strong class="text-emerald">{{ t('zeroMBOffline') }}</strong>
+            <div class="usage-bar">
+              <span :style="{ width: storagePercent + '%' }"></span>
+            </div>
+            <div class="usage-caption">
+              <span>{{ downloads.length }} {{ downloads.length === 1 ? t('lessonOne') : t('lessons') }}</span>
+              <span>{{ t('zeroMBOffline') }}</span>
             </div>
           </div>
         </section>
 
+        <!-- Stats Row -->
+        <section class="downloads-stats">
+          <div class="stat-tile">
+            <span class="stat-tile__icon stat-tile__icon--indigo"><i class="fa-solid fa-film"></i></span>
+            <div class="stat-tile__copy">
+              <strong>{{ downloads.length }}</strong>
+              <small>{{ t('offlineLessons') }}</small>
+            </div>
+          </div>
+          <div class="stat-tile">
+            <span class="stat-tile__icon stat-tile__icon--emerald"><i class="fa-solid fa-shield-halved"></i></span>
+            <div class="stat-tile__copy">
+              <strong>{{ t('offline') }}</strong>
+              <small>{{ t('networkNeeded') }}</small>
+            </div>
+          </div>
+          <div class="stat-tile">
+            <span class="stat-tile__icon stat-tile__icon--violet"><i class="fa-solid fa-database"></i></span>
+            <div class="stat-tile__copy">
+              <strong>{{ totalStorageUsed }}</strong>
+              <small>{{ t('storageUsed') }}</small>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section heading -->
+        <div v-if="downloads.length" class="section-heading downloads-heading">
+          <div>
+            <p class="section-kicker"><i class="fa-solid fa-layer-group"></i> {{ t('offlineLibrary') }}</p>
+            <h3>{{ t('yourDownloads') }}</h3>
+          </div>
+          <span class="section-caption">{{ downloads.length }} {{ downloads.length === 1 ? t('lessonOne') : t('lessons') }}</span>
+        </div>
+
         <!-- Downloads List -->
         <section class="downloads-section">
-          <div v-if="downloads.length" class="downloads-grid">
+          <div v-if="isLoading" class="downloads-grid">
+            <SkeletonCard v-for="n in 3" :key="n" />
+          </div>
+
+          <div v-else-if="downloads.length" class="downloads-grid">
             <article
               v-for="item in downloads"
               :key="item.lessonId"
@@ -67,12 +101,8 @@
             >
               <div class="download-item-card__thumb" @click="playOfflineLesson(item)">
                 <img :src="item.courseThumbnail" :alt="item.courseTitle" loading="lazy" />
-                <div class="download-item-card__play">
-                  <i class="fa-solid fa-play"></i>
-                </div>
-                <span class="offline-pill-badge">
-                  <i class="fa-solid fa-bolt"></i> {{ t('offline') }}
-                </span>
+                <span class="download-item-card__play"><i class="fa-solid fa-play"></i></span>
+                <span class="offline-pill-badge"><i class="fa-solid fa-bolt"></i> {{ t('offline') }}</span>
               </div>
 
               <div class="download-item-card__body">
@@ -84,17 +114,11 @@
                 <div class="download-item-card__meta">
                   <span><i class="fa-regular fa-clock"></i> {{ item.duration }}</span>
                   <span class="size-tag">{{ item.fileSizeLabel }}</span>
-                  <span v-if="item.downloadedAt" class="date-tag">
-                    {{ formatDate(item.downloadedAt) }}
-                  </span>
+                  <span v-if="item.downloadedAt" class="date-tag">{{ formatDate(item.downloadedAt) }}</span>
                 </div>
 
                 <div class="download-item-card__actions">
-                  <button
-                    class="primary-button watch-btn"
-                    type="button"
-                    @click="playOfflineLesson(item)"
-                  >
+                  <button class="primary-button watch-btn" type="button" @click="playOfflineLesson(item)">
                     <i class="fa-solid fa-circle-play"></i>
                     <span>{{ t('watchOffline') }}</span>
                   </button>
@@ -114,13 +138,12 @@
 
           <!-- Empty State -->
           <article v-else class="surface-card empty-downloads-card">
-            <div class="empty-icon-circle">
+            <div class="empty-illustration">
+              <span class="empty-illustration__ring"></span>
               <i class="fa-solid fa-cloud-arrow-down"></i>
             </div>
             <h3>{{ t('noDownloads') }}</h3>
-            <p>
-              {{ t('noDownloadsHint') }}
-            </p>
+            <p>{{ t('noDownloadsHint') }}</p>
             <div class="empty-actions">
               <button class="primary-button" type="button" @click="$router.push('/discover')">
                 <i class="fa-solid fa-compass"></i>
@@ -143,9 +166,10 @@
 <script>
 import { translate } from '@/services/i18n';
 import { IonContent, IonPage } from '@ionic/vue';
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import BottomNav from '@/components/BottomNav.vue';
+import SkeletonCard from '@/components/SkeletonCard.vue';
 import {
   clearAllDownloads,
   deleteDownloadedLesson,
@@ -159,11 +183,21 @@ export default {
     IonContent,
     IonPage,
     BottomNav,
+    SkeletonCard,
   },
   setup() {
     const router = useRouter();
     const downloads = ref([]);
     const totalStorageUsed = ref('0 B');
+    const storageBytes = ref(0);
+    const isLoading = ref(true);
+
+    // Decorative fill level — treat ~100 MB as a visually "full" vault.
+    const storagePercent = computed(() => {
+      const bytes = Number(storageBytes.value || 0);
+      if (!bytes) return 0;
+      return Math.min(100, Math.max(6, Math.round((bytes / (100 * 1024 * 1024)) * 100)));
+    });
 
     const loadDownloads = async () => {
       try {
@@ -173,8 +207,11 @@ export default {
         ]);
         downloads.value = dList || [];
         totalStorageUsed.value = usage.totalFormatted || '0 B';
+        storageBytes.value = Number(usage.totalBytes || 0);
       } catch (err) {
         console.warn(translate('loadDownloadsError'), err);
+      } finally {
+        isLoading.value = false;
       }
     };
 
@@ -191,7 +228,7 @@ export default {
     };
 
     const handleClearAll = async () => {
-      if (confirm('Are you sure you want to remove all offline videos to free up storage?')) {
+      if (confirm(translate('confirmClearAll'))) {
         await clearAllDownloads();
         await loadDownloads();
       }
@@ -223,9 +260,11 @@ export default {
     return {
       downloads,
       formatDate,
+      isLoading,
       handleClearAll,
       handleDelete,
       playOfflineLesson,
+      storagePercent,
       totalStorageUsed,
     };
   },
@@ -233,6 +272,7 @@ export default {
 </script>
 
 <style scoped>
+/* Top bar */
 .page-top-bar {
   display: flex;
   align-items: center;
@@ -241,45 +281,30 @@ export default {
   margin-bottom: 20px;
 }
 
-.back-btn {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  color: var(--text-main);
-  display: flex;
+.top-kicker {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-  box-shadow: var(--shadow-xs);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.back-btn:hover {
-  background: var(--surface-soft);
+  gap: 6px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--brand);
-  border-color: var(--brand-light);
 }
 
 .top-bar-title {
-  flex: 1;
+  display: grid;
+  gap: 3px;
   min-width: 0;
 }
 
 .top-bar-title h2 {
   margin: 0;
-  font-size: 1.35rem;
+  font-size: 1.55rem;
   font-weight: 800;
   color: var(--text-main);
-  line-height: 1.25;
-}
-
-.sub-caption {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
 }
 
 .clear-all-icon-btn {
@@ -287,128 +312,227 @@ export default {
   height: 42px;
   padding: 0;
   border-radius: var(--radius-md);
-  color: #ef4444;
+  color: var(--danger);
   border-color: rgba(239, 68, 68, 0.25);
-  background: rgba(239, 68, 68, 0.08);
+  background: var(--danger-soft);
 }
 
 .clear-all-icon-btn:hover {
   background: rgba(239, 68, 68, 0.16);
-  border-color: #ef4444;
+  border-color: var(--danger);
 }
 
-/* Vault Status Card */
-.storage-vault-card {
-  padding: 20px;
-  border-radius: var(--radius-2xl);
+/* Vault hero */
+.vault-hero {
+  position: relative;
+  overflow: hidden;
   display: grid;
-  gap: 16px;
-  margin-bottom: 22px;
+  gap: 18px;
+  padding: 22px;
+  border-radius: var(--radius-2xl);
+  background: var(--brand-hero-gradient);
+  color: #ffffff;
+  box-shadow: var(--shadow-float);
+  margin-bottom: 16px;
+  isolation: isolate;
 }
 
-.vault-header {
+.vault-hero__glow {
+  position: absolute;
+  top: -60px;
+  right: -40px;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(129, 140, 248, 0.5), transparent 70%);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.vault-hero__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: linear-gradient(to bottom, #000, transparent 80%);
+  -webkit-mask-image: linear-gradient(to bottom, #000, transparent 80%);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.vault-hero__head {
   display: flex;
   align-items: flex-start;
   gap: 14px;
 }
 
-.vault-icon-badge {
-  width: 46px;
-  height: 46px;
-  border-radius: var(--radius-lg);
-  background: rgba(99, 102, 241, 0.12);
-  border: 1px solid rgba(99, 102, 241, 0.3);
-  color: var(--brand);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.2rem;
+.vault-hero__icon {
+  width: 50px;
+  height: 50px;
   flex-shrink: 0;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  font-size: 1.3rem;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
 }
 
-.vault-heading {
+.vault-hero__head-copy {
   display: grid;
   gap: 4px;
   min-width: 0;
 }
 
-.vault-tags {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
 .secure-pill {
+  justify-self: start;
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 3px 9px;
+  padding: 3px 10px;
   border-radius: var(--radius-full);
-  background: rgba(16, 185, 129, 0.12);
-  color: #10b981;
-  font-size: 0.68rem;
-  font-weight: 700;
+  background: rgba(16, 185, 129, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #6ee7b7;
+  font-size: 0.66rem;
+  font-weight: 800;
   letter-spacing: 0.02em;
 }
 
-.usage-pill {
-  display: inline-flex;
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  background: var(--surface-soft);
-  color: var(--text-main);
-  font-size: 0.68rem;
-  font-weight: 800;
-  border: 1px solid var(--line);
-}
-
-.vault-heading h3 {
+.vault-hero__head-copy h3 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-weight: 800;
-  color: var(--text-main);
 }
 
-.vault-heading p {
+.vault-hero__head-copy p {
   margin: 0;
   font-size: 0.8rem;
-  color: var(--text-muted);
-  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.45;
 }
 
-.vault-stats-row {
+.vault-hero__usage {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  padding-top: 14px;
-  border-top: 1px solid var(--line);
+  gap: 8px;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(10px);
 }
 
-.vault-stat {
-  display: grid;
-  gap: 2px;
+.usage-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.vault-stat small {
-  font-size: 0.68rem;
-  color: var(--text-muted);
+.usage-main small {
+  font-size: 0.72rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.8);
 }
 
-.vault-stat strong {
-  font-size: 0.95rem;
+.usage-main strong {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.usage-bar {
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  overflow: hidden;
+}
+
+.usage-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #a5b4fc, #f0abfc);
+  box-shadow: 0 0 12px rgba(196, 181, 253, 0.7);
+  transition: width 0.6s cubic-bezier(0.34, 1.3, 0.45, 1);
+}
+
+.usage-caption {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+/* Stats */
+.downloads-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.stat-tile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-xs);
+  min-width: 0;
+}
+
+.stat-tile__icon {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  font-size: 0.9rem;
+}
+
+.stat-tile__icon--indigo { background: var(--brand-soft); color: var(--brand); }
+.stat-tile__icon--emerald { background: var(--success-soft); color: var(--success); }
+.stat-tile__icon--violet { background: var(--accent-purple-soft); color: var(--accent-purple); }
+
+.stat-tile__copy {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.stat-tile__copy strong {
+  font-size: 0.85rem;
   font-weight: 800;
   color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.text-emerald {
-  color: #10b981 !important;
+.stat-tile__copy small {
+  font-size: 0.63rem;
+  font-weight: 650;
+  color: var(--text-muted);
+  line-height: 1.2;
 }
 
-/* Downloads List */
+/* Section heading */
+.downloads-heading {
+  margin-bottom: 14px;
+}
+
+/* Downloads list */
 .downloads-grid {
   display: grid;
   gap: 14px;
@@ -425,7 +549,7 @@ export default {
 .download-item-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
-  border-color: rgba(99, 102, 241, 0.3);
+  border-color: var(--brand-light);
 }
 
 .download-item-card__thumb {
@@ -444,6 +568,11 @@ export default {
   height: 100%;
   object-fit: cover;
   display: block;
+  transition: transform 0.35s ease;
+}
+
+.download-item-card:hover .download-item-card__thumb img {
+  transform: scale(1.06);
 }
 
 .download-item-card__play {
@@ -452,15 +581,13 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 23, 42, 0.45);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.1), rgba(15, 23, 42, 0.55));
   color: #ffffff;
   font-size: 1.1rem;
-  opacity: 0.9;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: transform 0.2s ease;
 }
 
-.download-item-card__thumb:hover .download-item-card__play {
-  opacity: 1;
+.download-item-card:hover .download-item-card__play {
   transform: scale(1.08);
 }
 
@@ -473,7 +600,7 @@ export default {
   gap: 4px;
   padding: 2px 7px;
   border-radius: var(--radius-full);
-  background: rgba(16, 185, 129, 0.92);
+  background: var(--success);
   color: #ffffff;
   font-size: 0.62rem;
   font-weight: 800;
@@ -515,6 +642,7 @@ export default {
 .download-item-card__meta {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   font-size: 0.72rem;
   color: var(--text-muted);
@@ -530,10 +658,6 @@ export default {
   border: 1px solid var(--line);
 }
 
-.date-tag {
-  color: var(--text-muted);
-}
-
 .download-item-card__actions {
   display: flex;
   align-items: center;
@@ -546,7 +670,7 @@ export default {
   font-size: 0.78rem;
   font-weight: 700;
   border-radius: var(--radius-md);
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+  box-shadow: var(--shadow-brand-sm);
 }
 
 .delete-btn {
@@ -557,20 +681,20 @@ export default {
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-md);
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.08);
+  color: var(--danger);
+  background: var(--danger-soft);
   border: 1px solid rgba(239, 68, 68, 0.25);
   font-size: 0.8rem;
 }
 
 .delete-btn:hover {
   background: rgba(239, 68, 68, 0.16);
-  border-color: #ef4444;
+  border-color: var(--danger);
 }
 
-/* Empty State Card */
+/* Empty state */
 .empty-downloads-card {
-  padding: 40px 24px;
+  padding: 44px 24px;
   border-radius: var(--radius-2xl);
   text-align: center;
   display: flex;
@@ -579,17 +703,29 @@ export default {
   gap: 12px;
 }
 
-.empty-icon-circle {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: rgba(99, 102, 241, 0.1);
+.empty-illustration {
+  position: relative;
+  width: 78px;
+  height: 78px;
+  display: grid;
+  place-items: center;
   color: var(--brand);
-  font-size: 1.8rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-size: 2rem;
   margin-bottom: 4px;
+}
+
+.empty-illustration__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--brand-soft);
+  border: 1px dashed var(--brand-light);
+  animation: empty-pulse 3s ease-in-out infinite;
+}
+
+@keyframes empty-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.08); opacity: 0.5; }
 }
 
 .empty-downloads-card h3 {
@@ -609,21 +745,17 @@ export default {
 
 .empty-actions {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 10px;
   margin-top: 10px;
 }
 
+/* Responsive */
 @media (max-width: 480px) {
-  .download-item-card {
-    flex-direction: column;
-  }
-  .download-item-card__thumb {
-    width: 100%;
-    height: 140px;
-  }
-  .vault-stats-row {
-    grid-template-columns: 1fr 1fr;
-  }
+  .download-item-card { flex-direction: column; }
+  .download-item-card__thumb { width: 100%; height: 150px; }
+  .downloads-stats { grid-template-columns: 1fr 1fr; }
+  .stat-tile:last-child { grid-column: 1 / -1; }
 }
 </style>

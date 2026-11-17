@@ -1,4 +1,4 @@
-package com.example.app;
+package com.soma.academy;
 
 import com.getcapacitor.BridgeActivity;
 

@@ -325,7 +325,7 @@ export default {
         router.push({
           name: 'course-details',
           params: { id },
-          query: lessonIndex ? { lessonIndex } : undefined,
+          query: { lessonIndex },
         });
       }
     }

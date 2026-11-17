@@ -268,8 +268,14 @@ export default {
   methods: {
     async loadCourses() {
       this.isLoading = true;
-      this.courses = await getCourses();
-      this.isLoading = false;
+      try {
+        this.courses = (await getCourses()) || [];
+      } catch (err) {
+        console.warn('Could not load courses', err);
+        this.courses = [];
+      } finally {
+        this.isLoading = false;
+      }
     },
     formatCurrency,
     toggleFilters() {
