@@ -9,29 +9,9 @@
     @mousemove="revealTemporarily"
     @touchstart.passive="revealTemporarily"
   >
-    <!-- Native Video Element with Progressive Chunk Loading -->
-    <video
-      ref="video"
-      class="custom-video-player__media"
-      :src="src"
-      :poster="poster"
-      playsinline
-      preload="auto"
-      @loadstart="handleLoadStart"
-      @loadedmetadata="handleLoadedMetadata"
-      @loadeddata="handleLoadedData"
-      @canplay="handleCanPlay"
-      @playing="handlePlaying"
-      @waiting="handleWaiting"
-      @seeking="handleSeeking"
-      @seeked="handleSeeked"
-      @progress="handleProgress"
-      @timeupdate="handleTimeUpdate"
-      @play="handlePlay"
-      @pause="handlePause"
-      @ended="handleEnded"
-      @error="handleError"
-    ></video>
+    <!-- The shared <video> element is moved into this host by playerVideo.js
+         so going to/from the floating player never reloads the stream. -->
+    <div ref="videoHost" class="custom-video-player__media"></div>
 
     <!-- Dark gradient overlay for readable controls -->
     <div
@@ -233,6 +213,25 @@
 
 <script>
 import { ScreenOrientation } from '@capacitor/screen-orientation';
+import { mountVideoInto, parkVideo, setVideoSrc } from '@/services/playerVideo';
+
+// The shared video element lives outside Vue, so its events are wired here.
+const VIDEO_EVENTS = {
+  loadstart: 'handleLoadStart',
+  loadedmetadata: 'handleLoadedMetadata',
+  loadeddata: 'handleLoadedData',
+  canplay: 'handleCanPlay',
+  playing: 'handlePlaying',
+  waiting: 'handleWaiting',
+  seeking: 'handleSeeking',
+  seeked: 'handleSeeked',
+  progress: 'handleProgress',
+  timeupdate: 'handleTimeUpdate',
+  play: 'handlePlay',
+  pause: 'handlePause',
+  ended: 'handleEnded',
+  error: 'handleError',
+};
 
 export default {
   name: 'CustomVideoPlayer',
@@ -248,6 +247,10 @@ export default {
     startAt: {
       type: Number,
       default: 0,
+    },
+    resumeFromMini: {
+      type: Boolean,
+      default: false,
     },
     isOffline: {
       type: Boolean,
@@ -266,9 +269,10 @@ export default {
       default: 0,
     },
   },
-  emits: ['loaded', 'timeupdate', 'ended', 'error', 'download-click', 'playing'],
+  emits: ['loaded', 'canplay', 'timeupdate', 'ended', 'error', 'download-click', 'playing'],
   data() {
     return {
+      videoEl: null,
       isPlaying: false,
       isMuted: false,
       controlsVisible: true,
@@ -327,22 +331,42 @@ export default {
   watch: {
     src() {
       this.resetPlayerState();
-      this.$nextTick(() => {
-        this.$refs.video?.load?.();
-      });
+      setVideoSrc(this.src);
+    },
+    poster(value) {
+      if (this.videoEl) this.videoEl.poster = value || '';
     },
     startAt(val) {
-      if (val > 0 && !this.isPlaying) {
+      if (val > 0 && !this.isPlaying && this.videoEl && this.videoEl.readyState >= 1) {
         this.seekTo(val);
       }
     },
   },
   mounted() {
-    const player = this.$refs.video;
-    if (player && player.readyState >= 1) {
+    // Adopt the single shared video element — it may already be playing from
+    // the floating player, in which case there is nothing to reload.
+    const player = mountVideoInto(this.$refs.videoHost);
+    this.videoEl = player;
+    this._boundHandlers = {};
+    Object.entries(VIDEO_EVENTS).forEach(([event, method]) => {
+      const handler = (...args) => this[method](...args);
+      this._boundHandlers[event] = handler;
+      player.addEventListener(event, handler);
+    });
+
+    player.poster = this.poster || '';
+    player.muted = this.isMuted;
+    player.playbackRate = this.playbackSpeed || 1;
+    setVideoSrc(this.src);
+
+    if (player.readyState >= 1) {
       this.duration = Math.floor(player.duration || 0);
+      this.currentTime = Math.floor(player.currentTime || 0);
+      this.progressValue = player.currentTime || 0;
+      this.isPlaying = !player.paused && !player.ended;
       this.isLoading = false;
       this.hasLoadedFrame = true;
+      this.updateBufferedProgress();
     }
     // Safety fallback: Never stay stuck in loading state on idle player
     window.setTimeout(() => {
@@ -355,6 +379,17 @@ export default {
   beforeUnmount() {
     window.clearTimeout(this.hideControlsTimer);
     window.clearTimeout(this.loadingSafetyTimer);
+
+    const player = this.videoEl;
+    if (player && this._boundHandlers) {
+      Object.entries(this._boundHandlers).forEach(([event, handler]) => {
+        player.removeEventListener(event, handler);
+      });
+      this._boundHandlers = null;
+    }
+    // Keep the element alive in the document while the mini player takes over.
+    parkVideo();
+    this.videoEl = null;
 
     document.removeEventListener('fullscreenchange', this.handleFullscreenChange);
     document.removeEventListener('webkitfullscreenchange', this.handleFullscreenChange);
@@ -416,7 +451,7 @@ export default {
       }, 1200);
     },
     handleLoadedMetadata() {
-      const player = this.$refs.video;
+      const player = this.videoEl;
       if (!player) return;
 
       this.duration = Math.floor(player.duration || 0);
@@ -425,8 +460,12 @@ export default {
       this.hasLoadedFrame = true;
       window.clearTimeout(this.loadingSafetyTimer);
 
-      // Start where the user previously paused without loading entire video
-      if (this.startAt > 0 && this.startAt < this.duration) {
+      // With a #t= media fragment the browser already starts at the saved
+      // position — only seek explicitly when it ended up somewhere else.
+      const needsSeek = this.startAt > 0
+        && this.startAt < this.duration
+        && Math.abs((player.currentTime || 0) - this.startAt) > 1;
+      if (needsSeek) {
         player.currentTime = this.startAt;
         this.currentTime = Math.floor(this.startAt);
       } else {
@@ -451,6 +490,7 @@ export default {
       this.isLoading = false;
       this.isBuffering = false;
       this.updateBufferedProgress();
+      this.$emit('canplay');
     },
     handlePlaying() {
       this.isPlaying = true;
@@ -477,7 +517,7 @@ export default {
       this.updateBufferedProgress();
     },
     updateBufferedProgress() {
-      const player = this.$refs.video;
+      const player = this.videoEl;
       if (!player || !player.duration || isNaN(player.duration) || player.duration === 0) {
         return;
       }
@@ -505,7 +545,7 @@ export default {
       this.bufferedPercent = Math.min(100, Math.max(0, (bufferedEnd / player.duration) * 100));
     },
     handleTimeUpdate() {
-      const player = this.$refs.video;
+      const player = this.videoEl;
       if (!player) return;
 
       this.currentTime = Math.floor(player.currentTime || 0);
@@ -540,7 +580,7 @@ export default {
     retryLoading() {
       this.hasError = false;
       this.isLoading = true;
-      const player = this.$refs.video;
+      const player = this.videoEl;
       if (player) {
         const savedTime = this.currentTime;
         player.load();
@@ -561,7 +601,7 @@ export default {
       window.clearTimeout(this.hideControlsTimer);
     },
     async togglePlay() {
-      const player = this.$refs.video;
+      const player = this.videoEl;
       if (!player) return;
 
       if (player.paused) {
@@ -584,7 +624,7 @@ export default {
       }
     },
     async playVideo() {
-      const player = this.$refs.video;
+      const player = this.videoEl;
       if (!player) return;
       try {
         this.isPlaying = true;
@@ -599,7 +639,7 @@ export default {
       }
     },
     pauseVideo() {
-      const player = this.$refs.video;
+      const player = this.videoEl;
       if (player && !player.paused) {
         player.pause();
         this.isPlaying = false;
@@ -610,7 +650,7 @@ export default {
     // video off to the global picture-in-picture mini player when navigating
     // away, so it can resume at the exact same position.
     getPlaybackState() {
-      const player = this.$refs.video;
+      const player = this.videoEl;
       if (!player) {
         return {
           isPlaying: false,
@@ -624,7 +664,9 @@ export default {
         };
       }
       return {
-        isPlaying: Boolean(this.isPlaying) && !player.paused && !player.ended,
+        // Trust the real element state — the local flag can briefly lag when
+        // the page is navigated away from.
+        isPlaying: !player.paused && !player.ended,
         paused: player.paused,
         ended: player.ended,
         currentTime: Number(player.currentTime || 0),
@@ -635,7 +677,7 @@ export default {
       };
     },
     toggleMute() {
-      const player = this.$refs.video;
+      const player = this.videoEl;
       if (!player) return;
       player.muted = !player.muted;
       this.isMuted = player.muted;
@@ -651,7 +693,7 @@ export default {
       this.controlsVisible = true;
     },
     setPlaybackSpeed(speed) {
-      const player = this.$refs.video;
+      const player = this.videoEl;
       this.playbackSpeed = speed;
       if (player) {
         player.playbackRate = speed;
@@ -661,7 +703,7 @@ export default {
       this.selectedQuality = quality;
     },
     handleProgressInput() {
-      const player = this.$refs.video;
+      const player = this.videoEl;
       if (!player) return;
 
       this.currentTime = Math.floor(this.progressValue);
@@ -669,7 +711,7 @@ export default {
       this.updateBufferedProgress();
     },
     handleProgressChange() {
-      const player = this.$refs.video;
+      const player = this.videoEl;
       if (!player) return;
 
       player.currentTime = this.progressValue;
@@ -689,7 +731,7 @@ export default {
       this.seekTo(targetTime);
     },
     seekRelative(offset) {
-      const player = this.$refs.video;
+      const player = this.videoEl;
       if (!player) return;
 
       const target = Math.max(0, Math.min(this.duration || 0, (player.currentTime || 0) + offset));
@@ -704,7 +746,7 @@ export default {
       this.revealTemporarily();
     },
     seekTo(seconds) {
-      const player = this.$refs.video;
+      const player = this.videoEl;
       if (!player) return;
 
       const next = Math.max(0, Math.min(this.duration || 0, Number(seconds || 0)));
@@ -729,7 +771,7 @@ export default {
     },
     async toggleFullscreen() {
       const container = this.$el;
-      const video = this.$refs.video;
+      const video = this.videoEl;
 
       const isFs =
         Boolean(document.fullscreenElement) ||
@@ -813,6 +855,13 @@ export default {
 
 <style scoped>
 .custom-video-player {
+  /* Control-bar surfaces — kept identical in light and dark mode so the
+     player overlay always looks the same. */
+  --vp-control-bg: rgba(15, 23, 42, 0.65);
+  --vp-control-bg-strong: rgba(15, 23, 42, 0.78);
+  --vp-control-border: rgba(255, 255, 255, 0.18);
+  --vp-shade-top: rgba(15, 23, 42, 0.6);
+  --vp-shade-bottom: rgba(15, 23, 42, 0.8);
   position: relative;
   overflow: hidden;
   min-height: 240px;
@@ -824,17 +873,18 @@ export default {
 
 .custom-video-player__media {
   width: 100%;
+  aspect-ratio: 16 / 9;
   min-height: 240px;
   max-height: 480px;
   display: block;
-  object-fit: cover;
+  overflow: hidden;
   background: #020617;
 }
 
 .custom-video-player__shade {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.6) 0%, rgba(15, 23, 42, 0.05) 40%, rgba(15, 23, 42, 0.8) 100%);
+  background: linear-gradient(180deg, var(--vp-shade-top) 0%, rgba(15, 23, 42, 0.05) 40%, var(--vp-shade-bottom) 100%);
   pointer-events: none;
   transition: opacity 0.3s ease;
 }
@@ -1018,8 +1068,8 @@ export default {
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background: rgba(15, 23, 42, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--vp-control-bg-strong);
+  border: 1px solid var(--vp-control-border);
   color: #ffffff;
   font-size: 1.1rem;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
@@ -1049,8 +1099,8 @@ export default {
 }
 
 .transport-button--primary.is-loading {
-  background: linear-gradient(135deg, #4338ca, #4f46e5);
-  box-shadow: 0 0 25px rgba(99, 102, 241, 0.7);
+  background: linear-gradient(135deg, var(--brand-deep, #4338ca), var(--brand, #4f46e5));
+  box-shadow: 0 0 25px var(--brand-glow);
 }
 
 .transport-loader-icon {
@@ -1071,8 +1121,8 @@ export default {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: rgba(15, 23, 42, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: var(--vp-control-bg);
+  border: 1px solid var(--vp-control-border);
   color: #ffffff;
   font-size: 0.9rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
@@ -1095,7 +1145,7 @@ export default {
 }
 
 .control-icon--bottom {
-  background: rgba(15, 23, 42, 0.75);
+  background: var(--vp-control-bg-strong);
 }
 
 /* Settings Menu */
@@ -1186,13 +1236,13 @@ export default {
   gap: 5px;
   padding: 5px 12px;
   border-radius: var(--radius-full, 9999px);
-  background: rgba(15, 23, 42, 0.75);
+  background: var(--vp-control-bg-strong);
   backdrop-filter: blur(8px);
   color: #ffffff;
   font-weight: 700;
   font-size: 0.78rem;
   letter-spacing: 0.02em;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--vp-control-border);
 }
 
 .time-current {

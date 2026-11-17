@@ -113,3 +113,7 @@ export function consumeResumeOnReturn() {
   state.resumeOnReturn = false;
   return shouldResume;
 }
+
+export function clearResumeOnReturn() {
+  state.resumeOnReturn = false;
+}

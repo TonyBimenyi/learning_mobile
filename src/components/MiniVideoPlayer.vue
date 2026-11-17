@@ -7,20 +7,8 @@
       :style="pipStyle"
       @pointerdown="onPointerDown"
     >
-      <video
-        ref="video"
-        class="pip-player__video"
-        :src="state.src"
-        :poster="state.poster"
-        playsinline
-        preload="auto"
-        @loadedmetadata="onLoadedMetadata"
-        @timeupdate="onTimeUpdate"
-        @play="isPlaying = true"
-        @pause="isPlaying = false"
-        @ended="onEnded"
-        @error="onError"
-      ></video>
+      <!-- The same <video> element from the lesson player is moved in here. -->
+      <div ref="videoHost" class="pip-player__video"></div>
 
       <!-- Top gradient bar: lesson title + close -->
       <div class="pip-player__top">
@@ -76,11 +64,13 @@
 import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
+  clearResumeOnReturn,
   getMiniPlayerState,
   requestResumeOnReturn,
   stopMiniPlayer,
   updateMiniPlayerProgress,
 } from '@/services/miniPlayer';
+import { mountVideoInto, parkVideo, setVideoSrc } from '@/services/playerVideo';
 import { saveLessonProgress } from '@/services/storage';
 
 export default {
@@ -89,6 +79,7 @@ export default {
     const router = useRouter();
     const state = getMiniPlayerState();
     const pipRef = ref(null);
+    const videoHost = ref(null);
     const video = ref(null);
     const isPlaying = ref(false);
     const hasError = ref(false);
@@ -173,12 +164,76 @@ export default {
       });
     }
 
+    // ── Shared element wiring ─────────────────────────────────────────────────
+    let boundHandlers = null;
+
+    function attachVideo(player) {
+      boundHandlers = [
+        ['loadedmetadata', onLoadedMetadata],
+        ['timeupdate', onTimeUpdate],
+        ['play', () => { isPlaying.value = true; }],
+        ['pause', () => { isPlaying.value = false; }],
+        ['ended', onEnded],
+        ['error', onError],
+      ];
+      boundHandlers.forEach(([event, handler]) => player.addEventListener(event, handler));
+    }
+
+    function detachVideo(player) {
+      if (boundHandlers && player) {
+        boundHandlers.forEach(([event, handler]) => player.removeEventListener(event, handler));
+      }
+      boundHandlers = null;
+    }
+
+    // ── Playback startup (streaming sources need a few retries) ───────────────
+    let playRetryTimer = null;
+    let playAttempts = 0;
+
+    function stopPlayRetries() {
+      window.clearTimeout(playRetryTimer);
+      playAttempts = 0;
+    }
+
+    function startPlayback() {
+      const player = video.value;
+      if (!player || !state.active) return;
+      const duration = Number.isFinite(player.duration) && player.duration > 0
+        ? player.duration
+        : Infinity;
+      const target = Math.min(Math.max(0, state.startAt || 0), duration);
+      if (Math.abs((player.currentTime || 0) - target) > 1) {
+        try {
+          player.currentTime = target;
+        } catch (_) {}
+      }
+      currentTime.value = Math.floor(player.currentTime || target);
+      playingDuration.value = Math.floor(player.duration || 0);
+
+      stopPlayRetries();
+      const tryPlay = () => {
+        if (!state.active || !video.value) return;
+        const result = player.play();
+        if (result && typeof result.catch === 'function') {
+          result.catch(() => {
+            // Remote streams often reject play() while the first chunks load.
+            if (state.active && playAttempts < 12) {
+              playAttempts += 1;
+              playRetryTimer = window.setTimeout(tryPlay, 500);
+            }
+          });
+        }
+      };
+      tryPlay();
+    }
+
     // ── Video events ──────────────────────────────────────────────────────────
     function onLoadedMetadata() {
       const player = video.value;
       if (!player) return;
       playingDuration.value = Math.floor(player.duration || 0);
       hasError.value = false;
+      if (state.active && player.paused) startPlayback();
     }
 
     function onTimeUpdate() {
@@ -216,38 +271,38 @@ export default {
       () => [state.active, state.session],
       async () => {
         if (!state.active) {
-          const player = video.value;
-          if (player && !player.paused) player.pause();
+          stopPlayRetries();
+          detachVideo(video.value);
+          // Park — never unload. The next player will adopt this same element.
+          parkVideo();
+          video.value = null;
           return;
         }
         await nextTick();
-        const player = video.value;
-        if (!player) return;
+        const host = videoHost.value;
+        if (!host) return;
+        const player = mountVideoInto(host);
+        video.value = player;
+        detachVideo(player);
+        attachVideo(player);
 
         hasError.value = false;
         lastPersisted.value = -1;
-        isPlaying.value = false;
         player.muted = state.muted;
         player.playbackRate = state.playbackRate || 1;
+        setVideoSrc(state.src);
 
-        const startPlayback = () => {
-          const duration = Number.isFinite(player.duration) && player.duration > 0
-            ? player.duration
-            : Infinity;
-          const target = Math.min(Math.max(0, state.startAt || 0), duration);
-          try {
-            player.currentTime = target;
-          } catch (_) {}
-          currentTime.value = Math.floor(target);
-          playingDuration.value = Math.floor(player.duration || 0);
-          player.play().catch(() => {});
-        };
+        isPlaying.value = !player.paused && !player.ended;
+        currentTime.value = Math.floor(player.currentTime || 0);
+        playingDuration.value = Math.floor(player.duration || 0);
 
         if (player.readyState >= 1) {
           startPlayback();
         } else {
           player.addEventListener('loadedmetadata', startPlayback, { once: true });
         }
+        // A retry hook for streams that fire canplay after metadata.
+        player.addEventListener('canplay', startPlayback, { once: true });
       },
       { immediate: true }
     );
@@ -258,13 +313,14 @@ export default {
       if (player) {
         updateMiniPlayerProgress(player.currentTime, player.duration);
         persistProgress(true);
-        player.pause();
+        // No pause and no mute: this exact element is adopted by the full
+        // player in a moment, so playback simply carries on.
       }
       const id = state.courseId;
       const lessonIndex = state.lessonIndex;
-      // Returning to the lesson should continue playing, not show a paused frame.
       requestResumeOnReturn();
-      stopMiniPlayer();
+      // If the full player never starts, don't leave a stale resume request.
+      window.setTimeout(clearResumeOnReturn, 15000);
       if (id) {
         router.push({
           name: 'course-details',
@@ -285,6 +341,9 @@ export default {
     }
 
     onBeforeUnmount(() => {
+      stopPlayRetries();
+      detachVideo(video.value);
+      parkVideo();
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
       window.removeEventListener('pointercancel', onPointerUp);
@@ -293,6 +352,7 @@ export default {
     return {
       state,
       pipRef,
+      videoHost,
       video,
       isPlaying,
       hasError,
@@ -494,5 +554,34 @@ export default {
 
 .pip-enter-from .pip-player__video {
   transform: scale(1.2);
+}
+
+/* Dark mode: keep the floating control bar readable against dark pages */
+:root[data-theme="dark"] .pip-player,
+body.dark-mode .pip-player {
+  border-color: var(--line-strong);
+  box-shadow: 0 18px 40px -8px rgba(0, 0, 0, 0.8), 0 0 0 1px var(--brand-glow);
+}
+
+:root[data-theme="dark"] .pip-player__top,
+body.dark-mode .pip-player__top {
+  background: linear-gradient(180deg, rgba(9, 13, 22, 0.95), transparent);
+}
+
+:root[data-theme="dark"] .pip-player__bottom,
+body.dark-mode .pip-player__bottom {
+  background: linear-gradient(0deg, rgba(9, 13, 22, 0.96), transparent);
+}
+
+:root[data-theme="dark"] .pip-btn,
+body.dark-mode .pip-btn {
+  background: rgba(30, 41, 59, 0.92);
+  border-color: var(--line-strong);
+}
+
+:root[data-theme="dark"] .pip-btn:hover,
+body.dark-mode .pip-btn:hover {
+  background: var(--brand-soft);
+  color: var(--brand-light);
 }
 </style>

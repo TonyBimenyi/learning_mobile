@@ -90,8 +90,8 @@ export default {
 }
 
 .app-toast--warning {
-  --toast-color: var(--warning);
-  --toast-soft: var(--warning-soft);
+  --toast-color: var(--brand-light);
+  --toast-soft: var(--brand-soft);
 }
 
 .app-toast__icon {

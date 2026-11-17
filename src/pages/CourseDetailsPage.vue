@@ -90,12 +90,14 @@
                   :src="selectedLessonSource"
                   :poster="course.thumbnail"
                   :start-at="getSavedSeconds()"
+                  :resume-from-mini="resumeFromMini"
                   :is-offline="Boolean(offlineVideoUrl)"
                   :is-downloaded="isCurrentLessonDownloaded"
                   :is-downloading="isDownloadingCurrent"
                   :download-percent="currentDownloadPercent"
                   @download-click="handleDownloadToggle"
                   @loaded="handleVideoLoaded"
+                  @canplay="startResumePlayback"
                   @playing="handleVideoPlay"
                   @timeupdate="handleVideoTimeUpdate"
                   @ended="handleVideoEnded"
@@ -882,7 +884,8 @@ export default {
     let handedOffToMiniPlayer = false;
     // True when this page was opened by tapping the mini player — resume the
     // lesson automatically instead of leaving it paused.
-    let shouldResumePlayback = consumeResumeOnReturn();
+    const resumeFromMini = ref(consumeResumeOnReturn());
+    let shouldResumePlayback = resumeFromMini.value;
 
     const downloadedLessonIds = ref(new Set());
     const downloadingLessonIds = ref(new Map());
@@ -1222,22 +1225,49 @@ export default {
       refreshProgressMap();
     };
 
+    // Returning from the floating player: start the full player as soon as it
+    // can play, retrying briefly in case the first play() is too early.
+    let resumeRetryTimer = null;
+    let resumeAttempts = 0;
+
+    const playFromMiniPlayer = () => {
+      const player = customVideoPlayer.value;
+      if (!player || typeof player.playVideo !== 'function') return;
+      player.playVideo();
+      resumeAttempts += 1;
+      if (resumeAttempts < 8) {
+        resumeRetryTimer = window.setTimeout(() => {
+          const state = typeof player.getPlaybackState === 'function'
+            ? player.getPlaybackState()
+            : null;
+          if (state && !state.isPlaying) playFromMiniPlayer();
+        }, 550);
+      }
+    };
+
+    const startResumePlayback = () => {
+      if (!shouldResumePlayback) return;
+      shouldResumePlayback = false;
+      resumeAttempts = 0;
+      window.clearTimeout(resumeRetryTimer);
+      nextTick(playFromMiniPlayer);
+    };
+
     const handleVideoLoaded = (payload) => {
       currentVideoTime.value = Number(payload?.currentTime || 0);
       currentVideoDuration.value = Number(payload?.duration || 0);
       if (!questionForm.value.timeSec) {
         questionForm.value.timeSec = currentVideoTime.value;
       }
-      if (shouldResumePlayback && customVideoPlayer.value) {
-        // Came back from the mini player — keep the lesson playing instead of
-        // showing a frozen frame.
-        shouldResumePlayback = false;
-        nextTick(() => customVideoPlayer.value?.playVideo());
-      }
+      startResumePlayback();
     };
 
-    // Starting a new video in the full player closes any floating mini player.
+    // The full player has actually started — now the floating window can go.
     const handleVideoPlay = () => {
+      if (shouldResumePlayback) {
+        shouldResumePlayback = false;
+        window.clearTimeout(resumeRetryTimer);
+      }
       if (getMiniPlayerState().active) {
         stopMiniPlayer();
       }
@@ -1594,13 +1624,14 @@ export default {
       const playerRef = customVideoPlayer.value;
       if (!playerRef || typeof playerRef.getPlaybackState !== 'function') return;
       const playback = playerRef.getPlaybackState();
-      if (!playback.isPlaying || playback.ended || !playback.src) return;
+      const videoSrc = playback.src || selectedLessonSource.value;
+      if (!playback.isPlaying || playback.ended || !videoSrc) return;
 
       handedOffToMiniPlayer = true;
       const lesson = selectedLesson.value;
       const courseData = course.value;
       startMiniPlayer({
-        src: playback.src,
+        src: videoSrc,
         poster: courseData?.thumbnail || '',
         title: lesson?.title || 'Lesson',
         subtitle: courseData?.title || '',
@@ -1778,6 +1809,7 @@ export default {
     });
 
     onBeforeUnmount(() => {
+      window.clearTimeout(resumeRetryTimer);
       handOffToMiniPlayer();
       window.removeEventListener('twige:downloads-update', handleDownloadsUpdate);
       // If the offline blob was handed to the mini player, it owns the URL now.
@@ -1856,6 +1888,7 @@ export default {
       questionForm,
       questionTimeLabel,
       removeCurrentDownload,
+      resumeFromMini,
       reviewForm,
       reviewReplies,
       reviews,
@@ -1867,6 +1900,7 @@ export default {
       selectedLessonIndex,
       selectedLessonSource,
       showAllComments,
+      startResumePlayback,
       sortedDiscussions,
       startDownloadCurrent,
       startEditComment,
@@ -2908,15 +2942,15 @@ export default {
   transform: scale(0.94);
 }
 
-/* Teacher comments get a warm, elevated treatment */
+/* Teacher comments — elevated with the app's primary indigo/violet palette */
 .discussion-card.is-teacher {
   position: relative;
   overflow: hidden;
-  border-color: var(--warning);
+  border-color: var(--brand-light);
   background:
-    linear-gradient(135deg, var(--warning-soft), var(--brand-soft) 55%, transparent),
+    linear-gradient(135deg, var(--brand-soft), var(--surface-subtle) 55%, transparent),
     var(--surface);
-  box-shadow: 0 10px 30px -12px var(--warning-glow), var(--shadow-card);
+  box-shadow: 0 10px 30px -12px var(--brand-glow), var(--shadow-card);
 }
 
 .discussion-card.is-teacher::before {
@@ -2927,11 +2961,11 @@ export default {
   bottom: 14px;
   width: 3px;
   border-radius: 0 3px 3px 0;
-  background: linear-gradient(180deg, var(--warning), var(--accent-rose));
+  background: var(--brand-gradient);
 }
 
 .discussion-card.is-teacher .discussion-card__author img {
-  box-shadow: 0 0 0 2px var(--warning), 0 0 0 5px var(--warning-glow);
+  box-shadow: 0 0 0 2px var(--brand), 0 0 0 5px var(--brand-glow);
 }
 
 .author-line {
@@ -2948,9 +2982,9 @@ export default {
   padding: 3px 9px;
   border-radius: var(--radius-full);
   border: 1px solid var(--surface-glass-border);
-  background: linear-gradient(135deg, var(--warning), var(--accent-rose));
-  box-shadow: 0 3px 10px var(--warning-glow);
-  color: var(--text-inverse);
+  background: var(--brand-gradient);
+  box-shadow: 0 3px 10px var(--brand-glow);
+  color: #ffffff;
   font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0.05em;
@@ -2998,8 +3032,8 @@ export default {
 }
 
 .teacher-reply-card.is-teacher {
-  border-color: var(--warning);
-  background: linear-gradient(135deg, var(--warning-soft), transparent);
+  border-color: var(--brand-light);
+  background: linear-gradient(135deg, var(--brand-soft), transparent);
 }
 
 .teacher-reply-card p {
