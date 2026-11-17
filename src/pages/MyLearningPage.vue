@@ -11,9 +11,9 @@
             <h1>{{ t('navMyLearning') }}</h1>
             <p>{{ t('myLearningSubtitle') }}</p>
           </div>
-          <div class="learning-hero__streak">
-            <div class="streak-icon">
-              <i class="fa-solid fa-fire"></i>
+          <div class="learning-hero__tracks">
+            <div class="tracks-icon">
+              <i class="fa-solid fa-layer-group"></i>
             </div>
             <div>
               <small>{{ t('activeTracks') }}</small>
@@ -26,9 +26,9 @@
         <div class="learning-tabs-dock">
           <button
             class="learning-tab-dock-btn"
-            :class="{ 'is-active': activeTab === translate('courses') }"
+            :class="{ 'is-active': activeTab === 'courses' }"
             type="button"
-            @click="activeTab = translate('courses')"
+            @click="activeTab = 'courses'"
           >
             <i class="fa-solid fa-book-open"></i>
             <span>Courses ({{ activeCourses.length }})</span>
@@ -45,7 +45,7 @@
         </div>
 
         <!-- TAB 1: COURSES VIEW -->
-        <template v-if="activeTab === translate('courses')">
+        <template v-if="activeTab === 'courses'">
           <!-- Stats Overview Row -->
           <section v-if="isLoading" class="overview-stats-grid">
             <article v-for="n in 3" :key="'stat-skel-'+n" class="surface-card stat-item">
@@ -316,7 +316,7 @@
               <div class="empty-icon"><i class="fa-solid fa-cloud-arrow-down"></i></div>
               <strong>No offline videos saved yet</strong>
               <p>Go to any course lesson and tap the <b>Download</b> button to save it securely for offline viewing without cellular data.</p>
-              <button class="primary-button" type="button" @click="activeTab = translate('courses')">
+              <button class="primary-button" type="button" @click="activeTab = 'courses'">
                 <span>Browse My Courses</span>
                 <i class="fa-solid fa-arrow-right"></i>
               </button>
@@ -357,12 +357,19 @@ export default {
     const courses = ref([]);
     const enrollments = ref([]);
     const progressMap = ref(getProgressMap());
-    const activeTab = ref(route.query.tab === 'downloads' ? 'downloads' : translate('courses'));
+    const activeTab = ref(route.query.tab === 'downloads' ? 'downloads' : 'courses');
     const downloads = ref([]);
     const totalStorageUsed = ref('0 B');
     const isLoading = ref(true);
 
-    const continueWatching = computed(() => getContinueWatchingList());
+    const continueWatching = computed(() => {
+      // Read progressMap so this recomputes when lesson progress is saved.
+      void progressMap.value;
+      // Only surface lessons that are genuinely in progress (< 95%).
+      return getContinueWatchingList().filter(
+        (entry) => Number(entry.progressPercent || 0) < 95,
+      );
+    });
 
     const enrolledCourseIds = computed(() =>
       enrollments.value
@@ -476,74 +483,108 @@ export default {
 <style scoped>
 /* Hero Header */
 .learning-hero {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 18px;
   padding: 24px;
   border-radius: var(--radius-2xl);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow-card);
+  background: var(--brand-hero-gradient);
+  color: #ffffff;
+  box-shadow: 0 20px 48px -10px rgba(15, 23, 42, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  overflow: hidden;
+}
+
+.learning-hero::before {
+  content: '';
+  position: absolute;
+  top: -60%;
+  right: -10%;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(129, 140, 248, 0.35) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .learning-hero__info {
   display: grid;
-  gap: 8px;
+  gap: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.learning-hero .pill--brand {
+  width: fit-content;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(8px);
+  color: #ffffff;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .learning-hero h1 {
   margin: 0;
-  font-size: 1.55rem;
+  font-size: 1.68rem;
   font-weight: 800;
-  color: var(--text-main);
+  color: #ffffff;
   letter-spacing: -0.02em;
 }
 
 .learning-hero p {
   margin: 0;
   font-size: 0.88rem;
-  color: var(--text-muted);
+  color: rgba(241, 245, 249, 0.85);
   line-height: 1.5;
   max-width: 28rem;
 }
 
-.learning-hero__streak {
+.learning-hero__tracks {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
+  padding: 12px 18px;
   border-radius: var(--radius-xl);
-  background: var(--brand-soft);
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
 }
 
-.streak-icon {
-  width: 40px;
-  height: 40px;
+.tracks-icon {
+  width: 42px;
+  height: 42px;
   border-radius: 12px;
-  background: #ffffff;
-  color: #ea580c;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
   display: grid;
   place-items: center;
   font-size: 1.15rem;
-  box-shadow: 0 4px 10px rgba(234, 88, 12, 0.15);
 }
 
-.learning-hero__streak small {
+.learning-hero__tracks small {
   display: block;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 700;
-  color: var(--brand);
+  color: rgba(241, 245, 249, 0.8);
   text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.learning-hero__streak strong {
+.learning-hero__tracks strong {
   display: block;
-  font-size: 1.25rem;
+  font-size: 1.35rem;
   font-weight: 800;
-  color: var(--text-main);
+  color: #ffffff;
   font-family: 'Outfit', sans-serif;
+  line-height: 1.2;
 }
 
 /* Tab Selector Dock */
@@ -1060,12 +1101,13 @@ export default {
 @media (max-width: 540px) {
   .learning-hero {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+    padding: 20px;
   }
 
-  .learning-hero__streak {
+  .learning-hero__tracks {
     width: 100%;
-    justify-content: center;
+    justify-content: flex-start;
   }
 
   .overview-stats-grid {

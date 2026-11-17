@@ -1,25 +1,5 @@
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import { createApp } from 'vue';
 import { IonicVue } from '@ionic/vue';
 import '@ionic/vue/css/core.css';
@@ -33,13 +13,21 @@ import './theme/global.css';
 import { initTheme } from './services/theme';
 import { translate } from './services/i18n';
 
-// ─── Server Base URL ─────────────────────────────────────────────────────────
-// Driven by VITE_API_BASE so the .env files are actually used.
-//   .env.local  → VITE_API_BASE=''  → uses the Vite proxy (local backend :8000)
-//   .env.ngrok  → VITE_API_BASE='https://<your-tunnel>.ngrok-free.dev'
-// Keep it a single source of truth — editing here is no longer needed.
 // ─────────────────────────────────────────────────────────────────────────────
-window.__APP_BASE_URL__ = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '');
+// SERVER BASE URL — EDIT HERE (no .env needed)
+//
+// Uncomment ONE line below to choose your backend, or leave APP_BASE_URL = ''
+// to use relative /api calls (Vite proxy in dev). A URL set from the app's
+// Settings screen still overrides anything here.
+//
+// const APP_BASE_URL = '';                                   // local dev / Vite proxy
+// const APP_BASE_URL = 'http://192.168.1.10:8000';           // phone on same Wi-Fi
+const APP_BASE_URL = 'https://lying-schnapps-doorknob.ngrok-free.dev'; // ngrok / public tunnel
+// const APP_BASE_URL = 'https://api.yourdomain.com';         // production
+// const APP_BASE_URL = '';
+
+window.__APP_BASE_URL__ = String(APP_BASE_URL || import.meta.env.VITE_API_BASE || '').replace(/\/$/, '');
+// ─────────────────────────────────────────────────────────────────────────────
 
 initTheme();
 
