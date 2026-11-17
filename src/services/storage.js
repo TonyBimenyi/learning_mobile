@@ -3,6 +3,7 @@ const APP_KEYS = {
   progress: 'twige_progress',
   user: 'twige_user',
   token: 'twige_token',
+  guestId: 'twige_guest_id',
   serverUrl: 'twige_server_url',
 };
 
@@ -50,6 +51,16 @@ export function saveSettings(patch) {
 
 export function getToken() {
   return window.localStorage.getItem(APP_KEYS.token) || '';
+}
+
+// Stable per-install id used to identify likes from guest (not logged-in) users.
+export function getGuestId() {
+  let id = window.localStorage.getItem(APP_KEYS.guestId);
+  if (!id) {
+    id = `g-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    window.localStorage.setItem(APP_KEYS.guestId, id);
+  }
+  return id;
 }
 
 export function saveAuth(payload) {

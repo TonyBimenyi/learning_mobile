@@ -27,8 +27,10 @@
   --success-soft: #ECFDF5;
   --warning: #F59E0B;
   --warning-soft: #FFFBEB;
+  --warning-glow: rgba(245, 158, 11, 0.28);
   --danger: #EF4444;
   --danger-soft: #FEF2F2;
+  --rose-glow: rgba(244, 63, 94, 0.28);
 
   /* Surfaces & Backgrounds */
   --app-bg: #F8FAFC;

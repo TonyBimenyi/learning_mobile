@@ -1,4 +1,4 @@
-import { clearAuth, getToken, saveAuth, getStoredUser } from './storage';
+import { clearAuth, getGuestId, getToken, saveAuth, getStoredUser } from './storage';
 
 // ─── Base URL ────────────────────────────────────────────────────────────────
 // Set in main.js via window.__APP_BASE_URL__
@@ -28,6 +28,8 @@ async function request(path, options = {}) {
 
   const token = getToken();
   if (token) headers.set('Authorization', `Token ${token}`);
+  // Identifies likes coming from a guest (not logged-in) install.
+  headers.set('X-Guest-Id', getGuestId());
 
   // Bypass ngrok browser warning page
   if (isNgrok) headers.set('ngrok-skip-browser-warning', 'true');
@@ -137,10 +139,23 @@ export async function replyToDiscussion(discussionId, text) {
   });
 }
 
+export async function updateDiscussion(discussionId, payload) {
+  return request(`/api/discussions/${encodeURIComponent(discussionId)}/`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteDiscussion(discussionId) {
+  return request(`/api/discussions/${encodeURIComponent(discussionId)}/`, {
+    method: 'DELETE',
+  });
+}
+
 export async function likeDiscussion(discussionId) {
   return request(`/api/discussions/${discussionId}/like/`, {
     method: 'POST',
-    body: JSON.stringify({}),
+    body: JSON.stringify({ guestId: getGuestId() }),
   });
 }
 

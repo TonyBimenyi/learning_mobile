@@ -203,46 +203,35 @@
 
             <div class="summary-insights">
               <article class="summary-insight-card">
-                <small>Checkout</small>
-                <strong>AfriPay secure payment</strong>
-                <span>Pay in BIF and unlock the course as soon as your payment is confirmed.</span>
-              </article>
-              <article class="summary-insight-card">
-                <small>Course Focus</small>
-                <strong>{{ course.category || 'General learning' }}</strong>
-                <span>{{ focusTags.slice(0, 3).join(' • ') || 'Practical local learning' }}</span>
+                <span class="insight-icon"><i class="fa-solid fa-shield-halved"></i></span>
+                <div class="insight-copy">
+                  <small>Checkout</small>
+                  <strong>AfriPay secure payment</strong>
+                  <span>Pay in BIF and unlock the course as soon as your payment is confirmed.</span>
+                </div>
               </article>
             </div>
 
             <div class="category-bank">
-              <div class="category-bank__section">
-                <small class="summary-label">Skills and tags</small>
-                <div class="category-bank__chips">
-                  <span
-                    v-for="tag in focusTags"
-                    :key="`focus-${tag}`"
-                    class="category-token category-token--current"
-                  >
-                    <i :class="getCategoryIcon(tag)"></i>
-                    <span>{{ tag }}</span>
-                  </span>
+              <div class="skills-heading">
+                <span class="skills-heading__icon"><i class="fa-solid fa-shapes"></i></span>
+                <div class="skills-heading__copy">
+                  <small class="summary-label">Skills and tags</small>
+                  <strong>What you'll work with</strong>
                 </div>
+                <span v-if="focusTags.length" class="skills-count">{{ focusTags.length }} topics</span>
               </div>
-
-              <div v-if="databaseCategories.length" class="category-bank__section">
-                <small class="summary-label">More categories in the database</small>
-                <div class="category-bank__chips">
-                  <button
-                    v-for="category in databaseCategories"
-                    :key="`db-category-${category}`"
-                    class="category-token category-token--button"
-                    @click="openCategory(category)"
-                  >
-                    <i :class="getCategoryIcon(category)"></i>
-                    <span>{{ category }}</span>
-                  </button>
-                </div>
+              <div v-if="focusTags.length" class="category-bank__chips">
+                <span
+                  v-for="tag in focusTags"
+                  :key="`focus-${tag}`"
+                  class="category-token category-token--current"
+                >
+                  <i :class="getCategoryIcon(tag)"></i>
+                  <span>{{ tag }}</span>
+                </span>
               </div>
+              <p v-else class="skills-empty">Practical skills for this course will appear here.</p>
             </div>
 
             <p v-if="paymentNotice" class="payment-notice" :class="`is-${paymentNoticeTone}`">
@@ -369,11 +358,6 @@
                 </button>
               </div>
 
-              <div v-if="commentNotice" class="comment-status-notice" :class="`is-${commentNoticeTone}`">
-                <i :class="commentNoticeTone === 'error' ? 'fa-solid fa-circle-exclamation' : 'fa-solid fa-circle-check'"></i>
-                <span>{{ commentNotice }}</span>
-              </div>
-
               <div class="comment-meta-row">
                 <button class="ghost-button reviews-btn" type="button" @click="goToReviews">
                   <i class="fa-regular fa-star"></i>
@@ -452,9 +436,30 @@
                 <span class="stream-badge">{{ discussions.length }}</span>
               </div>
 
+              <div class="comment-sort-bar">
+                <div class="comment-sort" role="group" aria-label="Sort comments">
+                  <button
+                    type="button"
+                    :class="{ 'is-active': commentSort === 'top' }"
+                    @click="commentSort = 'top'"
+                  >
+                    <i class="fa-solid fa-fire"></i>
+                    Top comments
+                  </button>
+                  <button
+                    type="button"
+                    :class="{ 'is-active': commentSort === 'newest' }"
+                    @click="commentSort = 'newest'"
+                  >
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    Newest
+                  </button>
+                </div>
+              </div>
+
               <div v-if="discussions.length" class="community-list">
                 <article
-                  v-for="discussion in discussions"
+                  v-for="discussion in visibleDiscussions"
                   :key="discussion.id"
                   class="discussion-card"
                   :class="{ 'is-teacher': discussion.isTeacher }"
@@ -478,7 +483,19 @@
                       Comment
                     </span>
                   </div>
-                  <p class="discussion-card__text">
+                  <div v-if="editingCommentId === discussion.id" class="comment-edit-box">
+                    <textarea v-model="editCommentText" rows="3"></textarea>
+                    <div class="comment-edit-actions">
+                      <button class="ghost-button compact-btn" type="button" @click="cancelEditComment">
+                        Cancel
+                      </button>
+                      <button class="primary-button compact-btn" type="button" @click="saveCommentEdit(discussion)">
+                        <i class="fa-solid fa-check"></i>
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                  <p v-else class="discussion-card__text">
                     <template v-for="(segment, index) in discussion.segments" :key="`${discussion.id}-seg-${index}`">
                       <button
                         v-if="segment.type === 'time'"
@@ -492,14 +509,40 @@
                       <span v-else>{{ segment.value }}</span>
                     </template>
                   </p>
-                  <div class="discussion-card__actions">
-                    <button class="ghost-button compact-btn" @click="handleLikeDiscussion(discussion)">
-                      <i class="fa-regular fa-thumbs-up"></i>
+                  <div v-if="editingCommentId !== discussion.id" class="discussion-card__actions">
+                    <button
+                      class="ghost-button compact-btn comment-like-btn"
+                      :class="{ 'is-liked': discussion.likedByMe }"
+                      type="button"
+                      :title="discussion.likedByMe ? 'Remove your like' : 'Like this comment'"
+                      @click="handleLikeDiscussion(discussion)"
+                    >
+                      <i :class="discussion.likedByMe ? 'fa-solid fa-thumbs-up' : 'fa-regular fa-thumbs-up'"></i>
                       <span>{{ discussion.likes }}</span>
                     </button>
                     <button class="ghost-button compact-btn reply-btn" @click="discussion.showReply = !discussion.showReply">
                       <i class="fa-regular fa-comment"></i>
                       <span>{{ discussion.replies.length }} replies</span>
+                    </button>
+                    <span class="comment-action-spacer"></span>
+                    <button
+                      v-if="canEditComment(discussion)"
+                      class="ghost-button compact-btn comment-edit-btn"
+                      type="button"
+                      title="Edit your comment"
+                      @click="startEditComment(discussion)"
+                    >
+                      <i class="fa-solid fa-pen"></i>
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      v-if="canModerateComments"
+                      class="ghost-button compact-btn comment-delete-btn"
+                      type="button"
+                      title="Delete comment"
+                      @click="deleteComment(discussion)"
+                    >
+                      <i class="fa-solid fa-trash-can"></i>
                     </button>
                   </div>
 
@@ -547,7 +590,19 @@
                   </div>
                 </article>
               </div>
-              <div v-else class="empty-community">
+
+              <button
+                v-if="hiddenCommentsCount > 0"
+                class="see-all-comments"
+                type="button"
+                @click="showAllComments = !showAllComments"
+              >
+                <i :class="showAllComments ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down'"></i>
+                <span v-if="!showAllComments">See all {{ discussions.length }} comments</span>
+                <span v-else>Show fewer comments</span>
+              </button>
+
+              <div v-if="!discussions.length" class="empty-community">
                 <div class="empty-icon"><i class="fa-regular fa-comment-dots"></i></div>
                 <p>No comments yet. Be the first to start the discussion!</p>
               </div>
@@ -629,8 +684,8 @@ import CustomVideoPlayer from '@/components/CustomVideoPlayer.vue';
 import {
   createDiscussion,
   createReview,
+  deleteDiscussion,
   getCourse,
-  getCourses,
   getCurrentUser,
   getDiscussions,
   getEnrollments,
@@ -639,6 +694,7 @@ import {
   mediaUrl,
   replyToDiscussion,
   startAfripayCheckout,
+  updateDiscussion,
 } from '@/services/api';
 import { formatCurrency, getCategoryIcon } from '@/services/course-helpers';
 import {
@@ -652,6 +708,7 @@ import {
   saveOfflineCourse,
 } from '@/services/downloads';
 import { getProgressMap, getToken, saveLessonProgress } from '@/services/storage';
+import { showToast } from '@/services/toast';
 import {
   consumeResumeOnReturn,
   getMiniPlayerState,
@@ -706,18 +763,26 @@ function isTeacherRole(role) {
   return ['teacher', 'instructor', 'admin', 'staff', 'tutor'].includes(value);
 }
 
+function toTimestamp(value) {
+  if (!value) return 0;
+  if (typeof value === 'number') {
+    return value < 1e12 ? value * 1000 : value;
+  }
+  let text = String(value).trim();
+  // Naive ISO strings from the API are UTC — mark them so devices in other
+  // time zones don't read a just-now reply as "2h ago".
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(text) && !/(Z|[+-]\d{2}:?\d{2})$/.test(text)) {
+    text += 'Z';
+  }
+  const parsed = new Date(text);
+  return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+}
+
 // Recent activity reads as "3sec ago / 10 min ago / 5h ago / 3 days ago";
 // anything older than 5 days shows the real date instead.
 function formatRelativeTime(value) {
-  if (!value) return 'Recent';
-  let timestamp;
-  if (typeof value === 'number') {
-    timestamp = value < 1e12 ? value * 1000 : value;
-  } else {
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) return 'Recent';
-    timestamp = parsed.getTime();
-  }
+  const timestamp = toTimestamp(value);
+  if (!timestamp) return 'Recent';
   const diff = Date.now() - timestamp;
   if (diff < 0) return 'just now';
   const sec = Math.floor(diff / 1000);
@@ -746,6 +811,7 @@ function normalizeReply(reply) {
     ...(reply || {}),
     isTeacher: isTeacherRole(reply?.role) || isTeacherRole(reply?.authorRole),
     relativeTime: formatRelativeTime(dateValue),
+    sortTimestamp: toTimestamp(dateValue),
     segments: parseTimeSegments(reply?.text || ''),
   };
 }
@@ -758,7 +824,9 @@ function normalizeDiscussion(discussion) {
     replies: Array.isArray(discussion?.replies) ? discussion.replies.map(normalizeReply) : [],
     showReply: Boolean(discussion?.showReply),
     isTeacher: isTeacherRole(discussion?.role),
+    likedByMe: Boolean(discussion?.likedByMe),
     relativeTime: formatRelativeTime(dateValue),
+    sortTimestamp: toTimestamp(dateValue),
     segments: parseTimeSegments(discussion?.text || ''),
   };
 }
@@ -782,7 +850,6 @@ export default {
     const playerHero = ref(null);
     const customVideoPlayer = ref(null);
     const course = ref(null);
-    const allCourses = ref([]);
     const enrollments = ref([]);
     const selectedLessonIndex = ref(0);
     const selectedLesson = ref(null);
@@ -792,6 +859,11 @@ export default {
     const reviewForm = ref({ rating: 5, text: '' });
     const questionForm = ref({ text: '', timeSec: 0 });
     const reviewReplies = ref({});
+    const commentSort = ref('top');
+    const showAllComments = ref(false);
+    const editingCommentId = ref(null);
+    const editCommentText = ref('');
+    const isSubmittingComment = ref(false);
     const progressMap = ref(getProgressMap());
     const user = ref({ id: '', name: 'Learner', avatar: '', role: 'student', email: '', whatsapp: '' });
     const currentVideoTime = ref(0);
@@ -975,15 +1047,6 @@ export default {
         .filter(Boolean);
       return [...new Set(tags)].slice(0, 6);
     });
-    const databaseCategories = computed(() => {
-      const current = String(course.value?.category || '');
-      const categories = allCourses.value
-        .map((item) => String(item?.category || '').trim())
-        .filter(Boolean)
-        .filter((item) => item !== current);
-      return [...new Set(categories)].slice(0, 8);
-    });
-
     const selectedLessonSource = computed(() => {
       if (offlineVideoUrl.value) {
         return offlineVideoUrl.value;
@@ -1025,6 +1088,39 @@ export default {
       }
       return Number(course.value?.rating || 0).toFixed(1);
     });
+
+    // ── Comment feed: sorting, "see all", and moderation rights ───────────────
+    const canModerateComments = computed(() => {
+      const role = String(user.value?.role || '').toLowerCase();
+      return ['teacher', 'admin', 'staff', 'instructor'].includes(role);
+    });
+
+    const sortedDiscussions = computed(() => {
+      const list = [...discussions.value];
+      if (commentSort.value === 'newest') {
+        return list.sort((a, b) => Number(b.sortTimestamp || 0) - Number(a.sortTimestamp || 0));
+      }
+      return list.sort((a, b) => (
+        Number(b.likes || 0) - Number(a.likes || 0)
+        || Number(b.sortTimestamp || 0) - Number(a.sortTimestamp || 0)
+      ));
+    });
+
+    const hiddenCommentsCount = computed(() => Math.max(0, discussions.value.length - 3));
+    const visibleDiscussions = computed(() => (
+      showAllComments.value ? sortedDiscussions.value : sortedDiscussions.value.slice(0, 3)
+    ));
+
+    const canEditComment = (comment) => {
+      if (canModerateComments.value) return true;
+      const myId = String(user.value?.id || '');
+      const authorId = String(comment?.authorId || comment?.author_id || '');
+      if (myId && authorId === myId) return true;
+      const myName = String(user.value?.name || '').trim().toLowerCase();
+      const authorName = String(comment?.authorName || '').trim().toLowerCase();
+      return Boolean(myName && authorName && myName === authorName);
+    };
+
     const currentEnrollment = computed(() => {
       if (!course.value) {
         return null;
@@ -1263,13 +1359,6 @@ export default {
       paymentNoticeTone.value = 'warning';
     };
 
-    const openCategory = (category) => {
-      router.push({
-        name: 'discover',
-        query: { category },
-      });
-    };
-
     const enrollInCourse = async () => {
       if (enrollmentStatus.value === 'success') {
         router.push('/my-learning');
@@ -1331,31 +1420,91 @@ export default {
 
     const submitQuestion = async () => {
       const text = questionForm.value.text.trim();
-      if (!text || !course.value || !selectedLesson.value) {
+      if (!text || !course.value || !selectedLesson.value || isSubmittingComment.value) {
         return;
       }
 
-      // The first timestamp written in the text is also stored on the comment
-      // so older clients and the API still know what moment it refers to.
-      const firstTime = parseTimeSegments(text).find((segment) => segment.type === 'time');
-      const created = await createDiscussion({
-        courseId: course.value.id,
-        lesson: selectedLesson.value.title,
-        timeSec: firstTime?.seconds || 0,
-        timeLabel: firstTime?.value || 'General',
-        author_id: user.value?.id || '',
-        authorName: userDisplayName.value,
-        avatar: userAvatar.value,
-        role: String(user.value?.role || 'student').toLowerCase(),
-        text,
-      });
+      isSubmittingComment.value = true;
+      try {
+        // The first timestamp written in the text is also stored on the comment
+        // so older clients and the API still know what moment it refers to.
+        const firstTime = parseTimeSegments(text).find((segment) => segment.type === 'time');
+        const created = await createDiscussion({
+          courseId: course.value.id,
+          lesson: selectedLesson.value.title,
+          timeSec: firstTime?.seconds || 0,
+          timeLabel: firstTime?.value || 'General',
+          author_id: user.value?.id || '',
+          authorName: userDisplayName.value,
+          avatar: userAvatar.value,
+          role: String(user.value?.role || 'student').toLowerCase(),
+          text,
+        });
 
-      const freshComment = { ...(created || {}) };
-      if (!freshComment.created_at && !freshComment.createdAt) {
-        freshComment.created_at = new Date().toISOString();
+        const freshComment = { ...(created || {}) };
+        if (!freshComment.created_at && !freshComment.createdAt) {
+          freshComment.created_at = new Date().toISOString();
+        }
+        discussions.value = [normalizeDiscussion(freshComment), ...discussions.value];
+        questionForm.value.text = '';
+        commentSort.value = 'newest';
+        showAllComments.value = true;
+        showToast('Your comment has been posted.', 'success');
+      } catch (error) {
+        showToast(error?.message || 'Could not post your comment.', 'error');
+      } finally {
+        isSubmittingComment.value = false;
       }
-      discussions.value = [normalizeDiscussion(freshComment), ...discussions.value];
-      questionForm.value.text = '';
+    };
+
+    const startEditComment = (comment) => {
+      editingCommentId.value = comment.id;
+      editCommentText.value = String(comment.text || '');
+      comment.showReply = false;
+    };
+
+    const cancelEditComment = () => {
+      editingCommentId.value = null;
+      editCommentText.value = '';
+    };
+
+    const saveCommentEdit = async (comment) => {
+      const text = String(editCommentText.value || '').trim();
+      if (!text) {
+        showToast('Write something before saving.', 'warning');
+        return;
+      }
+      try {
+        const firstTime = parseTimeSegments(text).find((segment) => segment.type === 'time');
+        const updated = await updateDiscussion(comment.id, {
+          text,
+          timeSec: firstTime?.seconds || 0,
+          timeLabel: firstTime?.value || 'General',
+        });
+        discussions.value = discussions.value.map((item) => (
+          item.id === comment.id
+            ? normalizeDiscussion({ ...comment, ...(updated || {}), text })
+            : item
+        ));
+        cancelEditComment();
+        showToast('Your comment has been updated.', 'success');
+      } catch (error) {
+        showToast(error?.message || 'Could not update your comment.', 'error');
+      }
+    };
+
+    const deleteComment = async (comment) => {
+      if (typeof window !== 'undefined' && !window.confirm('Delete this comment? This cannot be undone.')) {
+        return;
+      }
+      try {
+        await deleteDiscussion(comment.id);
+        discussions.value = discussions.value.filter((item) => item.id !== comment.id);
+        if (editingCommentId.value === comment.id) cancelEditComment();
+        showToast('Comment deleted.', 'info');
+      } catch (error) {
+        showToast(error?.message || 'Could not delete this comment.', 'error');
+      }
     };
 
     const submitReview = async () => {
@@ -1378,13 +1527,27 @@ export default {
         rating: 5,
         text: '',
       };
+      showToast('Thanks! Your review has been posted.', 'success');
     };
 
     const handleLikeDiscussion = async (discussion) => {
-      const updated = await likeDiscussion(discussion.id);
-      discussions.value = discussions.value.map((item) => (
-        item.id === discussion.id ? normalizeDiscussion({ ...discussion, ...(updated || {}) }) : item
-      ));
+      try {
+        const updated = await likeDiscussion(discussion.id);
+        const wasLiked = Boolean(discussion.likedByMe);
+        const nextLiked = typeof updated?.likedByMe === 'boolean'
+          ? updated.likedByMe
+          : !wasLiked;
+        const nextLikes = typeof updated?.likes === 'number'
+          ? updated.likes
+          : Math.max(0, Number(discussion.likes || 0) + (nextLiked ? 1 : -1));
+        discussions.value = discussions.value.map((item) => (
+          item.id === discussion.id
+            ? normalizeDiscussion({ ...discussion, ...(updated || {}), likedByMe: nextLiked, likes: nextLikes })
+            : item
+        ));
+      } catch (error) {
+        showToast(error?.message || 'Could not update your like.', 'error');
+      }
     };
 
     const submitDiscussionReply = async (discussion) => {
@@ -1393,11 +1556,24 @@ export default {
         return;
       }
 
-      const updated = await replyToDiscussion(discussion.id, text);
-      discussions.value = discussions.value.map((item) => (
-        item.id === discussion.id ? normalizeDiscussion({ ...discussion, ...(updated || {}) }) : item
-      ));
-      reviewReplies.value[discussion.id] = '';
+      try {
+        const updated = await replyToDiscussion(discussion.id, text);
+        const merged = { ...discussion, ...(updated || {}) };
+        // Make sure a just-posted reply always reads "just now" on the device.
+        if (Array.isArray(merged.replies) && merged.replies.length) {
+          const newest = merged.replies[merged.replies.length - 1];
+          if (newest && !newest.date && !newest.createdAt && !newest.created_at) {
+            newest.date = new Date().toISOString();
+          }
+        }
+        discussions.value = discussions.value.map((item) => (
+          item.id === discussion.id ? normalizeDiscussion(merged) : item
+        ));
+        reviewReplies.value[discussion.id] = '';
+        showToast('Your reply has been posted.', 'success');
+      } catch (error) {
+        showToast(error?.message || 'Could not post your reply.', 'error');
+      }
     };
 
     const fallbackAvatar = (name) => buildAvatar(name || 'Learner');
@@ -1599,10 +1775,6 @@ export default {
           syncPaymentNotice();
         })
         .catch(() => {});
-
-      getCourses()
-        .then((c) => { allCourses.value = c || []; })
-        .catch(() => {});
     });
 
     onBeforeUnmount(() => {
@@ -1626,6 +1798,10 @@ export default {
     return {
       activeCommunityTab,
       averageRating,
+      canEditComment,
+      canModerateComments,
+      cancelEditComment,
+      commentSort,
       communitySection,
       course,
       currentDownloadPercent,
@@ -1633,8 +1809,10 @@ export default {
       currentLessonOfflineRecord,
       currentVideoTime,
       customVideoPlayer,
-      databaseCategories,
+      deleteComment,
       discussions,
+      editCommentText,
+      editingCommentId,
       enrollInCourse,
       enrollmentStatus,
       enrollmentStatusLabel,
@@ -1650,6 +1828,7 @@ export default {
       goToReviews,
       handleDownloadToggle,
       handleLikeDiscussion,
+      hiddenCommentsCount,
       handleVideoError,
       handleVideoEnded,
       handleVideoLoaded,
@@ -1661,6 +1840,7 @@ export default {
       isCurrentLessonDownloaded,
       isDownloadingCurrent,
       isLoading,
+      isSubmittingComment,
       isLessonComplete,
       isLessonDownloadedById,
       isLessonDownloadingById,
@@ -1670,7 +1850,6 @@ export default {
       lessonPositionLabel,
       offlineVideoUrl,
       playerHero,
-      openCategory,
       paymentNotice,
       paymentNoticeTone,
       priceLabel,
@@ -1680,18 +1859,23 @@ export default {
       reviewForm,
       reviewReplies,
       reviews,
+      saveCommentEdit,
       scrollToCommunity,
       seekVideoTo,
       selectLesson,
       selectedLesson,
       selectedLessonIndex,
       selectedLessonSource,
+      showAllComments,
+      sortedDiscussions,
       startDownloadCurrent,
+      startEditComment,
       submitDiscussionReply,
       submitQuestion,
       submitReview,
       useCurrentVideoTime,
       user,
+      visibleDiscussions,
       userAvatar,
       userDisplayName,
       userProfileLabel,
@@ -2050,17 +2234,37 @@ export default {
 
 .summary-insights {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 12px;
 }
 
 .summary-insight-card {
-  display: grid;
-  gap: 5px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
   padding: 14px;
   border-radius: var(--radius-lg);
   background: var(--surface-soft);
   border: 1px solid var(--line);
+}
+
+.insight-icon {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  display: grid;
+  place-items: center;
+  background: var(--brand-gradient);
+  color: var(--text-inverse);
+  box-shadow: var(--shadow-brand-sm);
+  font-size: 0.95rem;
+}
+
+.insight-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
 }
 
 .summary-insight-card small,
@@ -2085,20 +2289,64 @@ export default {
 
 .category-bank {
   display: grid;
-  gap: 12px;
+  gap: 14px;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--brand-soft), var(--surface-soft) 72%);
+  border: 1px solid var(--line);
+}
+
+.skills-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.skills-heading__icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  display: grid;
+  place-items: center;
+  background: var(--brand-gradient);
+  color: var(--text-inverse);
+  box-shadow: var(--shadow-brand-sm);
+}
+
+.skills-heading__copy {
+  min-width: 0;
+}
+
+.skills-heading__copy strong {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--text-main);
+}
+
+.skills-count {
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--brand);
+  font-size: 0.7rem;
+  font-weight: 700;
 }
 
 .category-bank__chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
 }
 
 .category-token {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: 7px;
+  padding: 7px 13px;
   border-radius: var(--radius-full);
   background: var(--surface-soft);
   border: 1px solid var(--line);
@@ -2108,19 +2356,27 @@ export default {
 }
 
 .category-token--current {
-  background: var(--brand-soft);
+  background: var(--surface);
+  border-color: var(--line-focus);
   color: var(--brand);
-  border-color: rgba(99, 102, 241, 0.25);
+  box-shadow: var(--shadow-xs);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
 }
 
-.category-token--button {
-  cursor: pointer;
-  transition: all var(--transition-fast);
+.category-token--current i {
+  color: var(--brand-light);
 }
 
-.category-token--button:hover {
-  background: var(--brand-soft);
-  color: var(--brand);
+.category-token--current:hover {
+  transform: translateY(-2px);
+  border-color: var(--brand-light);
+  box-shadow: var(--shadow-brand-sm);
+}
+
+.skills-empty {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
 }
 
 .payment-notice {
@@ -2625,7 +2881,7 @@ export default {
   margin: 0 2px;
   padding: 1px 8px;
   border-radius: var(--radius-full);
-  border: 1px solid rgba(99, 102, 241, 0.42);
+  border: 1px solid var(--line-focus);
   background: var(--brand-soft);
   color: var(--brand);
   font: inherit;
@@ -2643,7 +2899,7 @@ export default {
 
 .inline-time-chip:hover {
   background: var(--brand);
-  color: #ffffff;
+  color: var(--text-inverse);
   box-shadow: 0 4px 12px var(--brand-glow);
   transform: translateY(-1px);
 }
@@ -2656,11 +2912,11 @@ export default {
 .discussion-card.is-teacher {
   position: relative;
   overflow: hidden;
-  border-color: rgba(245, 158, 11, 0.45);
+  border-color: var(--warning);
   background:
-    linear-gradient(135deg, rgba(245, 158, 11, 0.11), rgba(99, 102, 241, 0.07) 55%, transparent),
+    linear-gradient(135deg, var(--warning-soft), var(--brand-soft) 55%, transparent),
     var(--surface);
-  box-shadow: 0 10px 30px -12px rgba(245, 158, 11, 0.45), var(--shadow-card);
+  box-shadow: 0 10px 30px -12px var(--warning-glow), var(--shadow-card);
 }
 
 .discussion-card.is-teacher::before {
@@ -2671,11 +2927,11 @@ export default {
   bottom: 14px;
   width: 3px;
   border-radius: 0 3px 3px 0;
-  background: linear-gradient(180deg, #fbbf24, #f43f5e);
+  background: linear-gradient(180deg, var(--warning), var(--accent-rose));
 }
 
 .discussion-card.is-teacher .discussion-card__author img {
-  box-shadow: 0 0 0 2px #f59e0b, 0 0 0 5px rgba(245, 158, 11, 0.16);
+  box-shadow: 0 0 0 2px var(--warning), 0 0 0 5px var(--warning-glow);
 }
 
 .author-line {
@@ -2691,10 +2947,10 @@ export default {
   gap: 4px;
   padding: 3px 9px;
   border-radius: var(--radius-full);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  background: linear-gradient(135deg, #f59e0b, #f43f5e);
-  box-shadow: 0 3px 10px rgba(245, 158, 11, 0.35);
-  color: #ffffff;
+  border: 1px solid var(--surface-glass-border);
+  background: linear-gradient(135deg, var(--warning), var(--accent-rose));
+  box-shadow: 0 3px 10px var(--warning-glow);
+  color: var(--text-inverse);
   font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0.05em;
@@ -2742,8 +2998,8 @@ export default {
 }
 
 .teacher-reply-card.is-teacher {
-  border-color: rgba(245, 158, 11, 0.35);
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.09), transparent);
+  border-color: var(--warning);
+  background: linear-gradient(135deg, var(--warning-soft), transparent);
 }
 
 .teacher-reply-card p {
@@ -2752,6 +3008,137 @@ export default {
   color: var(--text-secondary);
   line-height: 1.55;
   white-space: pre-wrap;
+}
+
+/* Sort control */
+.comment-sort-bar {
+  margin-bottom: 12px;
+}
+
+.comment-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-full);
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+}
+
+.comment-sort button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.comment-sort button:hover {
+  color: var(--brand);
+}
+
+.comment-sort button.is-active {
+  background: var(--brand-gradient);
+  color: var(--text-inverse);
+  box-shadow: var(--shadow-brand-sm);
+}
+
+/* Edit / moderation actions */
+.comment-action-spacer {
+  flex: 1;
+}
+
+.comment-like-btn {
+  transition: all var(--transition-fast);
+}
+
+.comment-like-btn.is-liked {
+  background: var(--brand-soft);
+  border-color: var(--brand-light);
+  color: var(--brand);
+}
+
+.comment-like-btn.is-liked:hover {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.comment-edit-btn:hover {
+  color: var(--brand);
+  border-color: var(--brand-light);
+}
+
+.comment-delete-btn {
+  color: var(--danger);
+}
+
+.comment-delete-btn:hover {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.comment-edit-box {
+  display: grid;
+  gap: 8px;
+}
+
+.comment-edit-box textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-focus);
+  background: var(--surface-soft);
+  color: var(--text-main);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  outline: none;
+  resize: vertical;
+}
+
+.comment-edit-box textarea:focus {
+  background: var(--surface);
+  box-shadow: 0 0 0 3px var(--brand-glow);
+}
+
+.comment-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Show more / less */
+.see-all-comments {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--brand-light);
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.see-all-comments:hover {
+  background: var(--brand);
+  color: var(--text-inverse);
+  border-style: solid;
+  box-shadow: var(--shadow-brand-sm);
 }
 
 .discussion-card__actions {
@@ -2826,10 +3213,6 @@ export default {
 
   .course-summary__header-badges {
     align-items: flex-start;
-  }
-
-  .summary-insights {
-    grid-template-columns: 1fr;
   }
 
   .course-summary__footer {

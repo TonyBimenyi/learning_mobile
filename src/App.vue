@@ -29,6 +29,9 @@
   <!-- Global picture-in-picture mini player: survives route changes so a
        lesson keeps playing after you go back from the video page. -->
   <MiniVideoPlayer />
+
+  <!-- Global action toast -->
+  <AppToast />
 </template>
 
 <script>
@@ -36,12 +39,13 @@ import { App as CapApp } from '@capacitor/app';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { useRouter } from 'vue-router';
 import { onMounted, ref, watch } from 'vue';
+import AppToast from '@/components/AppToast.vue';
 import MiniVideoPlayer from '@/components/MiniVideoPlayer.vue';
 import { stopMiniPlayer } from '@/services/miniPlayer';
 
 export default {
   name: 'AppRoot',
-  components: { MiniVideoPlayer },
+  components: { AppToast, MiniVideoPlayer },
   setup() {
     const router = useRouter();
     const showSplash = ref(true);
