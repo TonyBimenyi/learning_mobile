@@ -3,7 +3,7 @@
     <ion-content :fullscreen="true" class="app-screen">
       <div class="screen-shell">
         <section v-if="course && selectedLesson" class="course-details-shell">
-          <section class="player-hero">
+          <section ref="playerHero" class="player-hero">
             <div class="player-hero__topline">
               <button class="player-back-btn" type="button" aria-label="Go back" @click="$router.back()">
                 <i class="fa-solid fa-arrow-left"></i>
@@ -96,6 +96,7 @@
                   :download-percent="currentDownloadPercent"
                   @download-click="handleDownloadToggle"
                   @loaded="handleVideoLoaded"
+                  @playing="handleVideoPlay"
                   @timeupdate="handleVideoTimeUpdate"
                   @ended="handleVideoEnded"
                   @error="handleVideoError"
@@ -338,60 +339,6 @@
                   <span class="section-kicker">New Comment</span>
                   <h4>Share a thought or ask a question</h4>
                 </div>
-                <div class="timestamp-toggle-wrap">
-                  <button
-                    class="filter-chip time-chip"
-                    :class="{ 'is-active': questionForm.hasTimestamp }"
-                    type="button"
-                    title="Toggle video timestamp for this comment"
-                    @click="questionForm.hasTimestamp = !questionForm.hasTimestamp"
-                  >
-                    <i class="fa-regular fa-clock"></i>
-                    <span>{{ questionForm.hasTimestamp ? formatClock(questionForm.timeSec) : 'General' }}</span>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Interactive Video Time Selector -->
-              <div v-if="questionForm.hasTimestamp" class="comment-time-selector">
-                <div class="time-selector-header">
-                  <div class="time-selector-label">
-                    <i class="fa-solid fa-stopwatch text-indigo"></i>
-                    <span>Comment at video time:</span>
-                  </div>
-                  <strong class="time-selector-display">{{ formatClock(questionForm.timeSec) }}</strong>
-                </div>
-
-                <div class="time-selector-controls">
-                  <button
-                    class="ghost-button time-sync-btn"
-                    type="button"
-                    title="Snap to currently playing video position"
-                    @click="useCurrentVideoTime"
-                  >
-                    <i class="fa-solid fa-crosshairs"></i>
-                    <span>Snap to Current ({{ formatClock(currentVideoTime) }})</span>
-                  </button>
-
-                  <div class="time-quick-steppers">
-                    <button class="ghost-button stepper-btn" type="button" @click="adjustQuestionTime(-15)">-15s</button>
-                    <button class="ghost-button stepper-btn" type="button" @click="adjustQuestionTime(15)">+15s</button>
-                    <button class="ghost-button stepper-btn" type="button" @click="questionForm.timeSec = 0">Start</button>
-                  </div>
-                </div>
-
-                <div class="time-slider-row">
-                  <span class="slider-limit">00:00</span>
-                  <input
-                    v-model.number="questionForm.timeSec"
-                    type="range"
-                    min="0"
-                    :max="Math.max(currentVideoDuration, 60)"
-                    step="1"
-                    class="comment-time-slider"
-                  />
-                  <span class="slider-limit">{{ formatClock(Math.max(currentVideoDuration, 60)) }}</span>
-                </div>
               </div>
 
               <div class="user-pill-card">
@@ -407,9 +354,20 @@
                 <textarea
                   v-model="questionForm.text"
                   rows="4"
-                  placeholder="Ask a question or write a comment about this part of the lesson..."
+                  placeholder="e.g. I did not understand at 2:30 — type any video time and it becomes a clickable jump link..."
                 ></textarea>
               </label>
+
+              <div class="comment-time-hint">
+                <span>
+                  <i class="fa-regular fa-clock"></i>
+                  Mention a time like <strong>2:30</strong> and tap it later to jump straight to that part.
+                </span>
+                <button class="time-insert-btn" type="button" @click="insertCurrentVideoTime">
+                  <i class="fa-solid fa-stopwatch"></i>
+                  <span>Add {{ formatClock(currentVideoTime) }}</span>
+                </button>
+              </div>
 
               <div v-if="commentNotice" class="comment-status-notice" :class="`is-${commentNoticeTone}`">
                 <i :class="commentNoticeTone === 'error' ? 'fa-solid fa-circle-exclamation' : 'fa-solid fa-circle-check'"></i>
@@ -499,28 +457,41 @@
                   v-for="discussion in discussions"
                   :key="discussion.id"
                   class="discussion-card"
+                  :class="{ 'is-teacher': discussion.isTeacher }"
                 >
                   <div class="discussion-card__header">
                     <div class="discussion-card__author">
                       <img :src="discussion.avatar || fallbackAvatar(discussion.authorName)" :alt="discussion.authorName" />
                       <div>
-                        <strong>{{ discussion.authorName }}</strong>
-                        <span>{{ discussion.date || 'Recent' }}</span>
+                        <div class="author-line">
+                          <strong>{{ discussion.authorName }}</strong>
+                          <span v-if="discussion.isTeacher" class="teacher-badge">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                            Instructor
+                          </span>
+                        </div>
+                        <small>{{ discussion.relativeTime }}</small>
                       </div>
                     </div>
-                    <button
-                      v-if="discussion.timeSec !== undefined && discussion.timeSec !== null && discussion.timeLabel && discussion.timeLabel !== 'General'"
-                      class="time-badge time-badge--clickable"
-                      type="button"
-                      title="Jump to this video timestamp"
-                      @click="seekVideoTo(discussion.timeSec)"
-                    >
-                      <i class="fa-solid fa-play"></i>
-                      <span>{{ discussion.timeLabel }}</span>
-                    </button>
-                    <span v-else class="time-badge">{{ discussion.timeLabel || 'General' }}</span>
+                    <span class="discussion-kind">
+                      <i class="fa-regular fa-comment-dots"></i>
+                      Comment
+                    </span>
                   </div>
-                  <p class="discussion-card__text">{{ discussion.text }}</p>
+                  <p class="discussion-card__text">
+                    <template v-for="(segment, index) in discussion.segments" :key="`${discussion.id}-seg-${index}`">
+                      <button
+                        v-if="segment.type === 'time'"
+                        class="inline-time-chip"
+                        type="button"
+                        :title="`Jump to ${segment.value} in the video`"
+                        @click="seekVideoTo(segment.seconds)"
+                      >
+                        <i class="fa-solid fa-play"></i>{{ segment.value }}
+                      </button>
+                      <span v-else>{{ segment.value }}</span>
+                    </template>
+                  </p>
                   <div class="discussion-card__actions">
                     <button class="ghost-button compact-btn" @click="handleLikeDiscussion(discussion)">
                       <i class="fa-regular fa-thumbs-up"></i>
@@ -537,9 +508,30 @@
                       v-for="reply in discussion.replies"
                       :key="reply.id || `${discussion.id}-${reply.date}-${reply.authorName}`"
                       class="teacher-reply-card"
+                      :class="{ 'is-teacher': reply.isTeacher }"
                     >
-                      <strong>{{ reply.authorName || 'Teacher' }}</strong>
-                      <p>{{ reply.text }}</p>
+                      <div class="reply-author-line">
+                        <strong>{{ reply.authorName || 'Teacher' }}</strong>
+                        <span v-if="reply.isTeacher" class="teacher-badge teacher-badge--small">
+                          <i class="fa-solid fa-graduation-cap"></i>
+                          Instructor
+                        </span>
+                        <small>{{ reply.relativeTime }}</small>
+                      </div>
+                      <p>
+                        <template v-for="(segment, index) in reply.segments" :key="`reply-${index}`">
+                          <button
+                            v-if="segment.type === 'time'"
+                            class="inline-time-chip"
+                            type="button"
+                            :title="`Jump to ${segment.value} in the video`"
+                            @click="seekVideoTo(segment.seconds)"
+                          >
+                            <i class="fa-solid fa-play"></i>{{ segment.value }}
+                          </button>
+                          <span v-else>{{ segment.value }}</span>
+                        </template>
+                      </p>
                     </article>
                   </div>
 
@@ -644,6 +636,7 @@ import {
   getEnrollments,
   getReviews,
   likeDiscussion,
+  mediaUrl,
   replyToDiscussion,
   startAfripayCheckout,
 } from '@/services/api';
@@ -659,6 +652,12 @@ import {
   saveOfflineCourse,
 } from '@/services/downloads';
 import { getProgressMap, getToken, saveLessonProgress } from '@/services/storage';
+import {
+  consumeResumeOnReturn,
+  getMiniPlayerState,
+  startMiniPlayer,
+  stopMiniPlayer,
+} from '@/services/miniPlayer';
 
 function formatClock(seconds) {
   const safe = Math.max(0, Math.floor(Number(seconds || 0)));
@@ -675,12 +674,92 @@ function buildAvatar(name) {
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'Learner')}&background=2446d8&color=fff&size=200`;
 }
 
+// Find timestamps like 2:30 or 1:02:30 written naturally inside a comment.
+function parseTimeSegments(text) {
+  const source = String(text || '');
+  const pattern = /\b(?:(?:(\d{1,2}):)?([0-5]?\d):([0-5]\d))\b/g;
+  const segments = [];
+  let lastIndex = 0;
+  let match;
+  while ((match = pattern.exec(source)) !== null) {
+    if (match.index > lastIndex) {
+      segments.push({ type: 'text', value: source.slice(lastIndex, match.index) });
+    }
+    const hours = Number(match[1] || 0);
+    const minutes = Number(match[2] || 0);
+    const seconds = Number(match[3] || 0);
+    segments.push({
+      type: 'time',
+      value: match[0],
+      seconds: hours * 3600 + minutes * 60 + seconds,
+    });
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < source.length) {
+    segments.push({ type: 'text', value: source.slice(lastIndex) });
+  }
+  return segments.length ? segments : [{ type: 'text', value: source }];
+}
+
+function isTeacherRole(role) {
+  const value = String(role || '').toLowerCase();
+  return ['teacher', 'instructor', 'admin', 'staff', 'tutor'].includes(value);
+}
+
+// Recent activity reads as "3sec ago / 10 min ago / 5h ago / 3 days ago";
+// anything older than 5 days shows the real date instead.
+function formatRelativeTime(value) {
+  if (!value) return 'Recent';
+  let timestamp;
+  if (typeof value === 'number') {
+    timestamp = value < 1e12 ? value * 1000 : value;
+  } else {
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return 'Recent';
+    timestamp = parsed.getTime();
+  }
+  const diff = Date.now() - timestamp;
+  if (diff < 0) return 'just now';
+  const sec = Math.floor(diff / 1000);
+  if (sec < 5) return 'just now';
+  if (sec < 60) return `${sec}sec ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min} min ago`;
+  const hour = Math.floor(min / 60);
+  if (hour < 24) return `${hour}h ago`;
+  const day = Math.floor(hour / 24);
+  if (day < 5) return `${day} ${day === 1 ? 'day' : 'days'} ago`;
+  try {
+    return new Date(timestamp).toLocaleDateString(undefined, {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  } catch (_) {
+    return String(value);
+  }
+}
+
+function normalizeReply(reply) {
+  const dateValue = reply?.createdAt || reply?.created_at || reply?.date || '';
+  return {
+    ...(reply || {}),
+    isTeacher: isTeacherRole(reply?.role) || isTeacherRole(reply?.authorRole),
+    relativeTime: formatRelativeTime(dateValue),
+    segments: parseTimeSegments(reply?.text || ''),
+  };
+}
+
 function normalizeDiscussion(discussion) {
+  const dateValue = discussion?.createdAt || discussion?.created_at || discussion?.date || '';
   return {
     ...discussion,
     likes: Number(discussion?.likes || 0),
-    replies: Array.isArray(discussion?.replies) ? discussion.replies : [],
+    replies: Array.isArray(discussion?.replies) ? discussion.replies.map(normalizeReply) : [],
     showReply: Boolean(discussion?.showReply),
+    isTeacher: isTeacherRole(discussion?.role),
+    relativeTime: formatRelativeTime(dateValue),
+    segments: parseTimeSegments(discussion?.text || ''),
   };
 }
 
@@ -700,6 +779,7 @@ export default {
     const router = useRouter();
     const route = useRoute();
     const communitySection = ref(null);
+    const playerHero = ref(null);
     const customVideoPlayer = ref(null);
     const course = ref(null);
     const allCourses = ref([]);
@@ -717,12 +797,20 @@ export default {
     const currentVideoTime = ref(0);
     const currentVideoDuration = ref(0);
     const lastPersistedSecond = ref(-1);
-    const preferStreamSource = ref(true);
+    // Prefer the direct Cloudflare CDN URL: it is an edge request, while the
+    // backend stream proxy adds a slow Django hop (and double hop via ngrok).
+    const useProxyStream = ref(false);
     const isStartingCheckout = ref(false);
     const paymentNotice = ref('');
     const paymentNoticeTone = ref('info');
     const isOfflineMode = ref(false);
     const isLoading = ref(true);
+    // Set when playback is moved into the global PiP player so we don't revoke
+    // an offline blob URL that the mini player still needs.
+    let handedOffToMiniPlayer = false;
+    // True when this page was opened by tapping the mini player — resume the
+    // lesson automatically instead of leaving it paused.
+    let shouldResumePlayback = consumeResumeOnReturn();
 
     const downloadedLessonIds = ref(new Set());
     const downloadingLessonIds = ref(new Map());
@@ -903,10 +991,13 @@ export default {
       if (!selectedLesson.value) {
         return '';
       }
-      if (preferStreamSource.value) {
-        return selectedLesson.value.streamUrl || selectedLesson.value.videoUrl || selectedLesson.value.source || '';
-      }
-      return selectedLesson.value.videoUrl || selectedLesson.value.streamUrl || selectedLesson.value.source || '';
+      const direct = selectedLesson.value.videoUrl || selectedLesson.value.source || '';
+      // streamUrl is backend-relative — prefix it so it also works in the APK,
+      // where a bare "/api/..." would resolve against capacitor://localhost.
+      const proxied = selectedLesson.value.streamUrl
+        ? mediaUrl(selectedLesson.value.streamUrl)
+        : '';
+      return useProxyStream.value ? (proxied || direct) : (direct || proxied);
     });
 
     const hasDbVideo = computed(() => Boolean(offlineVideoUrl.value || (selectedLesson.value && (selectedLesson.value.streamUrl || selectedLesson.value.videoUrl || selectedLesson.value.source))));
@@ -1041,6 +1132,19 @@ export default {
       if (!questionForm.value.timeSec) {
         questionForm.value.timeSec = currentVideoTime.value;
       }
+      if (shouldResumePlayback && customVideoPlayer.value) {
+        // Came back from the mini player — keep the lesson playing instead of
+        // showing a frozen frame.
+        shouldResumePlayback = false;
+        nextTick(() => customVideoPlayer.value?.playVideo());
+      }
+    };
+
+    // Starting a new video in the full player closes any floating mini player.
+    const handleVideoPlay = () => {
+      if (getMiniPlayerState().active) {
+        stopMiniPlayer();
+      }
     };
 
     const handleVideoTimeUpdate = (payload) => {
@@ -1055,8 +1159,10 @@ export default {
       persistLessonProgress(currentVideoTime.value, currentVideoDuration.value, true);
     };
     const handleVideoError = () => {
-      if (preferStreamSource.value && selectedLesson.value?.videoUrl) {
-        preferStreamSource.value = false;
+      // Direct CDN link failed — retry once through the backend proxy before
+      // giving up (e.g. when the public r2.dev URL is blocked).
+      if (!useProxyStream.value && selectedLesson.value?.streamUrl) {
+        useProxyStream.value = true;
         return;
       }
       paymentNotice.value = 'The video is streaming progressively. Playback will continue as more data loads.';
@@ -1069,7 +1175,7 @@ export default {
     const selectLesson = async (index) => {
       selectedLessonIndex.value = index;
       selectedLesson.value = course.value?.curriculum?.[index] || null;
-      preferStreamSource.value = true;
+      useProxyStream.value = false;
       const savedSeconds = Number(getProgressEntry(index)?.seconds || 0);
       currentVideoTime.value = savedSeconds;
       currentVideoDuration.value = 0;
@@ -1095,16 +1201,17 @@ export default {
       scrollToCommunity();
     };
 
-    const submitCheckoutForm = (action, fields) => {
-      // On Capacitor (Android APK), form.submit() hijacks the WebView.
-      // Instead, build a GET URL and open it with '_system' so Capacitor
-      // routes it to the Android system browser. Falls back on web too.
+    const submitCheckoutForm = (action, fields, redirectUrl) => {
+      // AfriPay's checkout only accepts the fields via POST. Opening its URL
+      // with a GET query string shows "Some required params are missing!".
+      // So we open our own redirect endpoint in the system browser; that page
+      // auto-submits the POST form to AfriPay, avoiding WebView form hijacking.
       try {
         const params = new URLSearchParams();
         Object.entries(fields || {}).forEach(([key, value]) => {
           params.set(key, String(value ?? ''));
         });
-        const checkoutUrl = action + '?' + params.toString();
+        const checkoutUrl = redirectUrl || (action + '?' + params.toString());
         // '_system' → Capacitor opens Android system browser (not WebView)
         // '_blank'  → fallback for desktop/web browsers
         const win = window.open(checkoutUrl, '_system');
@@ -1191,7 +1298,7 @@ export default {
           studentWhatsapp: user.value?.whatsapp || '',
           amountPaid: course.value.price,
         });
-        submitCheckoutForm(checkout.action, checkout.fields);
+        submitCheckoutForm(checkout.action, checkout.fields, checkout.redirectUrl);
       } catch (error) {
         paymentNotice.value = error.message || 'We could not start AfriPay checkout.';
         paymentNoticeTone.value = 'error';
@@ -1204,17 +1311,38 @@ export default {
       questionForm.value.timeSec = Math.max(0, Math.floor(currentVideoTime.value || getSavedSeconds()));
     };
 
+    // Insert the current playback position into the comment text so the user
+    // can write things like "I did not understand at 2:30".
+    const insertCurrentVideoTime = () => {
+      const stamp = formatClock(currentVideoTime.value || getSavedSeconds());
+      const current = String(questionForm.value.text || '').trim();
+      questionForm.value.text = current ? `${current} ${stamp}` : `at ${stamp}`;
+    };
+
+    // Jump the lesson player to a time mentioned inside a comment.
+    const seekVideoTo = (seconds) => {
+      const target = Math.max(0, Number(seconds || 0));
+      const player = customVideoPlayer.value;
+      if (player && typeof player.seekTo === 'function') {
+        player.seekTo(target);
+      }
+      playerHero.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
     const submitQuestion = async () => {
       const text = questionForm.value.text.trim();
       if (!text || !course.value || !selectedLesson.value) {
         return;
       }
 
+      // The first timestamp written in the text is also stored on the comment
+      // so older clients and the API still know what moment it refers to.
+      const firstTime = parseTimeSegments(text).find((segment) => segment.type === 'time');
       const created = await createDiscussion({
         courseId: course.value.id,
         lesson: selectedLesson.value.title,
-        timeSec: questionForm.value.timeSec || 0,
-        timeLabel: formatClock(questionForm.value.timeSec || 0),
+        timeSec: firstTime?.seconds || 0,
+        timeLabel: firstTime?.value || 'General',
         author_id: user.value?.id || '',
         authorName: userDisplayName.value,
         avatar: userAvatar.value,
@@ -1222,7 +1350,11 @@ export default {
         text,
       });
 
-      discussions.value = [normalizeDiscussion(created), ...discussions.value];
+      const freshComment = { ...(created || {}) };
+      if (!freshComment.created_at && !freshComment.createdAt) {
+        freshComment.created_at = new Date().toISOString();
+      }
+      discussions.value = [normalizeDiscussion(freshComment), ...discussions.value];
       questionForm.value.text = '';
     };
 
@@ -1251,7 +1383,7 @@ export default {
     const handleLikeDiscussion = async (discussion) => {
       const updated = await likeDiscussion(discussion.id);
       discussions.value = discussions.value.map((item) => (
-        item.id === discussion.id ? normalizeDiscussion(updated) : item
+        item.id === discussion.id ? normalizeDiscussion({ ...discussion, ...(updated || {}) }) : item
       ));
     };
 
@@ -1263,7 +1395,7 @@ export default {
 
       const updated = await replyToDiscussion(discussion.id, text);
       discussions.value = discussions.value.map((item) => (
-        item.id === discussion.id ? normalizeDiscussion(updated) : item
+        item.id === discussion.id ? normalizeDiscussion({ ...discussion, ...(updated || {}) }) : item
       ));
       reviewReplies.value[discussion.id] = '';
     };
@@ -1279,9 +1411,70 @@ export default {
       }
     };
 
+    // Leaving this page while a lesson is playing hands the video off to the
+    // global picture-in-picture player, which keeps it alive in the bottom-right
+    // corner while the user browses the rest of the app.
+    const handOffToMiniPlayer = () => {
+      const playerRef = customVideoPlayer.value;
+      if (!playerRef || typeof playerRef.getPlaybackState !== 'function') return;
+      const playback = playerRef.getPlaybackState();
+      if (!playback.isPlaying || playback.ended || !playback.src) return;
+
+      handedOffToMiniPlayer = true;
+      const lesson = selectedLesson.value;
+      const courseData = course.value;
+      startMiniPlayer({
+        src: playback.src,
+        poster: courseData?.thumbnail || '',
+        title: lesson?.title || 'Lesson',
+        subtitle: courseData?.title || '',
+        courseId: courseData?.id ?? props.id,
+        lessonIndex: selectedLessonIndex.value,
+        startAt: playback.currentTime,
+        duration: playback.duration,
+        muted: playback.muted,
+        playbackRate: playback.playbackRate,
+        isOffline: Boolean(offlineVideoUrl.value),
+        revokeOnClose: Boolean(
+          offlineVideoUrl.value && String(offlineVideoUrl.value).startsWith('blob:')
+        ),
+        meta: {
+          lessonKey: getLessonKey(),
+          courseId: courseData?.id ?? props.id,
+          courseTitle: courseData?.title || '',
+          courseThumbnail: courseData?.thumbnail || '',
+          lessonIndex: selectedLessonIndex.value,
+          lessonTitle: lesson?.title || 'Lesson',
+          durationLabel: lesson?.duration || formatClock(playback.duration),
+          youtubeId: lesson?.youtubeId || '',
+        },
+      });
+    };
+
+    // Open DNS/TLS connections to the video CDN as soon as course data exists,
+    // so the first play does not pay that setup cost. Do this for cached data too.
+    const warmedOrigins = new Set();
+    const warmRemoteOrigin = (url) => {
+      try {
+        if (!url || !/^https?:\/\//i.test(url)) return;
+        const origin = new URL(url).origin;
+        if (warmedOrigins.has(origin)) return;
+        warmedOrigins.add(origin);
+        const link = document.createElement('link');
+        link.rel = 'preconnect';
+        link.href = origin;
+        document.head.appendChild(link);
+      } catch (_) {}
+    };
+
     const applyCourseData = (data) => {
       if (!data) return false;
       course.value = data;
+
+      warmRemoteOrigin(data.thumbnail);
+      (data.curriculum || []).slice(0, 3).forEach((lesson) => {
+        warmRemoteOrigin(lesson?.videoUrl);
+      });
 
       const qIndex = route.query.lessonIndex !== undefined ? Number(route.query.lessonIndex) : null;
       const latestEntry = Object.values(progressMap.value)
@@ -1413,8 +1606,10 @@ export default {
     });
 
     onBeforeUnmount(() => {
+      handOffToMiniPlayer();
       window.removeEventListener('twige:downloads-update', handleDownloadsUpdate);
-      if (offlineVideoUrl.value && offlineVideoUrl.value.startsWith('blob:')) {
+      // If the offline blob was handed to the mini player, it owns the URL now.
+      if (!handedOffToMiniPlayer && offlineVideoUrl.value && offlineVideoUrl.value.startsWith('blob:')) {
         URL.revokeObjectURL(offlineVideoUrl.value);
       }
     });
@@ -1447,6 +1642,7 @@ export default {
       enrollButtonLabel,
       fallbackAvatar,
       focusTags,
+      formatClock,
       getCategoryIcon,
       getLessonId,
       getLessonProgress,
@@ -1457,6 +1653,7 @@ export default {
       handleVideoError,
       handleVideoEnded,
       handleVideoLoaded,
+      handleVideoPlay,
       handleVideoTimeUpdate,
       hasDbVideo,
       iframeUrl,
@@ -1469,8 +1666,10 @@ export default {
       isLessonDownloadingById,
       isOfflineMode,
       isStartingCheckout,
+      insertCurrentVideoTime,
       lessonPositionLabel,
       offlineVideoUrl,
+      playerHero,
       openCategory,
       paymentNotice,
       paymentNoticeTone,
@@ -1482,6 +1681,7 @@ export default {
       reviewReplies,
       reviews,
       scrollToCommunity,
+      seekVideoTo,
       selectLesson,
       selectedLesson,
       selectedLessonIndex,
@@ -2192,6 +2392,61 @@ export default {
   font-size: 0.74rem;
 }
 
+.comment-time-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius-lg);
+  background: var(--brand-soft);
+  border: 1px dashed rgba(99, 102, 241, 0.4);
+}
+
+.comment-time-hint > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.comment-time-hint > span i {
+  color: var(--brand);
+}
+
+.comment-time-hint strong {
+  color: var(--brand);
+}
+
+.time-insert-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 6px 11px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  background: var(--surface);
+  color: var(--brand);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.time-insert-btn:hover {
+  background: var(--brand);
+  color: #ffffff;
+  box-shadow: 0 5px 14px var(--brand-glow);
+}
+
+.time-insert-btn:active {
+  transform: scale(0.95);
+}
+
 .user-pill-card {
   display: flex;
   align-items: center;
@@ -2358,7 +2613,145 @@ export default {
   margin: 0;
   font-size: 0.88rem;
   color: var(--text-secondary);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* Timestamp written inside a comment — tap to jump the video */
+.inline-time-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 2px;
+  padding: 1px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(99, 102, 241, 0.42);
+  background: var(--brand-soft);
+  color: var(--brand);
+  font: inherit;
+  font-size: 0.82em;
+  font-weight: 800;
   line-height: 1.5;
+  vertical-align: baseline;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.inline-time-chip i {
+  font-size: 0.72em;
+}
+
+.inline-time-chip:hover {
+  background: var(--brand);
+  color: #ffffff;
+  box-shadow: 0 4px 12px var(--brand-glow);
+  transform: translateY(-1px);
+}
+
+.inline-time-chip:active {
+  transform: scale(0.94);
+}
+
+/* Teacher comments get a warm, elevated treatment */
+.discussion-card.is-teacher {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(245, 158, 11, 0.45);
+  background:
+    linear-gradient(135deg, rgba(245, 158, 11, 0.11), rgba(99, 102, 241, 0.07) 55%, transparent),
+    var(--surface);
+  box-shadow: 0 10px 30px -12px rgba(245, 158, 11, 0.45), var(--shadow-card);
+}
+
+.discussion-card.is-teacher::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: 14px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(180deg, #fbbf24, #f43f5e);
+}
+
+.discussion-card.is-teacher .discussion-card__author img {
+  box-shadow: 0 0 0 2px #f59e0b, 0 0 0 5px rgba(245, 158, 11, 0.16);
+}
+
+.author-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.teacher-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: linear-gradient(135deg, #f59e0b, #f43f5e);
+  box-shadow: 0 3px 10px rgba(245, 158, 11, 0.35);
+  color: #ffffff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.teacher-badge--small {
+  font-size: 0.56rem;
+  padding: 2px 7px;
+}
+
+.discussion-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.reply-author-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.reply-author-line strong {
+  color: var(--text-main);
+  font-size: 0.82rem;
+}
+
+.reply-author-line small {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+}
+
+.teacher-reply-card {
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+}
+
+.teacher-reply-card.is-teacher {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.09), transparent);
+}
+
+.teacher-reply-card p {
+  margin: 6px 0 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  white-space: pre-wrap;
 }
 
 .discussion-card__actions {

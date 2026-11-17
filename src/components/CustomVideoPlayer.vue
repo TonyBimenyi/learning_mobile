@@ -16,7 +16,7 @@
       :src="src"
       :poster="poster"
       playsinline
-      preload="metadata"
+      preload="auto"
       @loadstart="handleLoadStart"
       @loadedmetadata="handleLoadedMetadata"
       @loadeddata="handleLoadedData"
@@ -59,6 +59,22 @@
       <div class="custom-video-player__top-left">
         <button class="control-icon control-icon--ghost" type="button" aria-label="Mute toggle" @click="toggleMute">
           <i :class="isMuted ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high'"></i>
+        </button>
+
+        <button
+          class="control-icon control-icon--ghost download-action-btn"
+          :class="{ 'is-downloading': isDownloading, 'is-downloaded': isDownloaded }"
+          type="button"
+          :aria-label="isDownloaded ? 'Remove offline download' : 'Download lesson to watch offline'"
+          :title="isDownloaded ? 'Available offline — tap to remove' : 'Download lesson to watch offline'"
+          @click.stop="$emit('download-click')"
+        >
+          <span v-if="isDownloading" class="download-spinner-wrap">
+            <i class="fa-solid fa-circle-notch fa-spin"></i>
+            <span class="download-pct-badge">{{ downloadPercent }}%</span>
+          </span>
+          <i v-else-if="isDownloaded" class="fa-solid fa-circle-check text-emerald"></i>
+          <i v-else class="fa-solid fa-arrow-down-to-bracket"></i>
         </button>
 
         <div v-if="isOfflinePlayback" class="offline-pill">
@@ -250,7 +266,7 @@ export default {
       default: 0,
     },
   },
-  emits: ['loaded', 'timeupdate', 'ended', 'error', 'download-click'],
+  emits: ['loaded', 'timeupdate', 'ended', 'error', 'download-click', 'playing'],
   data() {
     return {
       isPlaying: false,
@@ -442,6 +458,8 @@ export default {
       this.isBuffering = false;
       this.hasLoadedFrame = true;
       this.updateBufferedProgress();
+      // Let the app dismiss any floating mini player when a new video starts.
+      this.$emit('playing');
     },
     handleWaiting() {
       // Triggered when video needs to buffer the next chunk
@@ -587,6 +605,34 @@ export default {
         this.isPlaying = false;
         this.controlsVisible = true;
       }
+    },
+    // Snapshot of the live playback state. Used by the course page to hand the
+    // video off to the global picture-in-picture mini player when navigating
+    // away, so it can resume at the exact same position.
+    getPlaybackState() {
+      const player = this.$refs.video;
+      if (!player) {
+        return {
+          isPlaying: false,
+          paused: true,
+          ended: false,
+          currentTime: 0,
+          duration: 0,
+          muted: this.isMuted,
+          playbackRate: this.playbackSpeed,
+          src: this.src,
+        };
+      }
+      return {
+        isPlaying: Boolean(this.isPlaying) && !player.paused && !player.ended,
+        paused: player.paused,
+        ended: player.ended,
+        currentTime: Number(player.currentTime || 0),
+        duration: Number(player.duration || 0),
+        muted: player.muted,
+        playbackRate: Number(player.playbackRate || 1),
+        src: this.src,
+      };
     },
     toggleMute() {
       const player = this.$refs.video;
@@ -908,7 +954,15 @@ export default {
   color: #10b981 !important;
 }
 
+.download-action-btn {
+  flex-shrink: 0;
+}
+
 .download-action-btn.is-downloading {
+  width: auto;
+  min-width: 58px;
+  padding: 0 8px;
+  border-radius: var(--radius-full, 9999px);
   border-color: rgba(99, 102, 241, 0.6);
   background: rgba(99, 102, 241, 0.25);
 }

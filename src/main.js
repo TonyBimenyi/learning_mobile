@@ -33,11 +33,12 @@ import './theme/global.css';
 import { initTheme } from './services/theme';
 
 // ─── Server Base URL ─────────────────────────────────────────────────────────
-// Change this to switch between local and any remote server.
-// Local  → leave as empty string '' (Vite proxy forwards to :8000)
-// Ngrok  → 'https://lying-schnapps-doorknob.ngrok-free.dev'
+// Driven by VITE_API_BASE so the .env files are actually used.
+//   .env.local  → VITE_API_BASE=''  → uses the Vite proxy (local backend :8000)
+//   .env.ngrok  → VITE_API_BASE='https://<your-tunnel>.ngrok-free.dev'
+// Keep it a single source of truth — editing here is no longer needed.
 // ─────────────────────────────────────────────────────────────────────────────
-window.__APP_BASE_URL__ = 'https://lying-schnapps-doorknob.ngrok-free.dev';
+window.__APP_BASE_URL__ = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '');
 
 initTheme();
 

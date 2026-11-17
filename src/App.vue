@@ -25,22 +25,40 @@
   </transition>
 
   <RouterView />
+
+  <!-- Global picture-in-picture mini player: survives route changes so a
+       lesson keeps playing after you go back from the video page. -->
+  <MiniVideoPlayer />
 </template>
 
 <script>
 import { App as CapApp } from '@capacitor/app';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { useRouter } from 'vue-router';
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
+import MiniVideoPlayer from '@/components/MiniVideoPlayer.vue';
+import { stopMiniPlayer } from '@/services/miniPlayer';
 
 export default {
   name: 'AppRoot',
+  components: { MiniVideoPlayer },
   setup() {
     const router = useRouter();
     const showSplash = ref(true);
     const showExitToast = ref(false);
     let lastBackPressTime = 0;
     let toastTimeout = null;
+
+    // Whenever a full lesson page opens, the floating video is done: the user
+    // is about to play a (possibly different) video in the main player.
+    watch(
+      () => router.currentRoute.value,
+      (to) => {
+        if (to.name === 'course-details') {
+          stopMiniPlayer();
+        }
+      }
+    );
 
     onMounted(async () => {
       // ── Hide native Capacitor splash screen smoothly ──
