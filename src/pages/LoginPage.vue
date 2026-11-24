@@ -11,10 +11,15 @@
               <span class="auth-brand__mark"><i class="fa-solid fa-graduation-cap"></i></span>
               <span>{{ t('appName') }}</span>
             </div>
-            <RouterLink to="/home" class="auth-skip">
-              <span>{{ t('backToExplore') }}</span>
-              <i class="fa-solid fa-arrow-right"></i>
-            </RouterLink>
+            <div class="auth-hero__actions">
+              <RouterLink to="/settings" class="auth-settings" :aria-label="t('settings')">
+                <i class="fa-solid fa-gear"></i>
+              </RouterLink>
+              <RouterLink to="/home" class="auth-skip">
+                <span>{{ t('backToExplore') }}</span>
+                <i class="fa-solid fa-arrow-right"></i>
+              </RouterLink>
+            </div>
           </div>
 
           <div class="auth-hero__copy">
@@ -29,7 +34,7 @@
 
         <!-- Single form card -->
         <section class="auth-card">
-          <div class="auth-tabs" role="tablist">
+          <div class="auth-tabs" role="tablist" :class="{ 'is-register': mode === 'register' }">
             <button
               type="button"
               role="tab"
@@ -48,54 +53,65 @@
             >
               {{ t('signUp') }}
             </button>
+
+            <span class="auth-tabs__indicator" aria-hidden="true"></span>
           </div>
 
           <form class="auth-form" @submit.prevent="submitAuth">
             <label v-if="mode === 'register'" class="auth-field">
               <span>{{ t('fullName') }}</span>
-              <div class="auth-field__control">
+              <div class="auth-field__control" :class="{ 'has-error': errors.name }">
                 <i class="fa-regular fa-user"></i>
                 <input
                   v-model="form.name"
                   type="text"
                   :placeholder="t('fullNamePlaceholder')"
                   autocomplete="name"
-                  required
                 />
               </div>
+              <span v-if="errors.name" class="auth-field__error" role="alert">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <span>{{ errors.name }}</span>
+              </span>
             </label>
 
             <label v-if="mode === 'register'" class="auth-field">
               <span>{{ t('whatsappNumber') }}</span>
-              <div class="auth-field__control">
+              <div class="auth-field__control" :class="{ 'has-error': errors.whatsapp }">
                 <i class="fa-brands fa-whatsapp"></i>
                 <input
                   v-model="form.whatsapp"
                   type="tel"
                   :placeholder="t('whatsappPlaceholder')"
                   autocomplete="tel"
-                  required
                 />
               </div>
+              <span v-if="errors.whatsapp" class="auth-field__error" role="alert">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <span>{{ errors.whatsapp }}</span>
+              </span>
             </label>
 
             <label class="auth-field">
               <span>{{ t('emailAddress') }}</span>
-              <div class="auth-field__control">
+              <div class="auth-field__control" :class="{ 'has-error': errors.email }">
                 <i class="fa-regular fa-envelope"></i>
                 <input
                   v-model="form.email"
                   type="email"
                   :placeholder="t('emailPlaceholder')"
                   autocomplete="email"
-                  required
                 />
               </div>
+              <span v-if="errors.email" class="auth-field__error" role="alert">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <span>{{ errors.email }}</span>
+              </span>
             </label>
 
             <label class="auth-field">
               <span>{{ t('password') }}</span>
-              <div class="auth-field__control">
+              <div class="auth-field__control" :class="{ 'has-error': errors.password }">
                 <i class="fa-solid fa-key"></i>
                 <input
                   v-model="form.password"
@@ -103,7 +119,6 @@
                   :placeholder="t('passwordPlaceholder')"
                   :autocomplete="mode === 'login' ? 'current-password' : 'new-password'"
                   minlength="6"
-                  required
                 />
                 <button
                   class="auth-field__toggle"
@@ -114,6 +129,10 @@
                   <i :class="showPassword ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye'"></i>
                 </button>
               </div>
+              <span v-if="errors.password" class="auth-field__error" role="alert">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <span>{{ errors.password }}</span>
+              </span>
             </label>
 
             <button class="auth-submit" type="submit" :disabled="isSubmitting">
@@ -159,53 +178,74 @@ export default {
       isSubmitting: false,
       isError: false,
       message: '',
+      // Inline errors shown right under the fields.
+      errors: {
+        email: '',
+        password: '',
+        name: '',
+        whatsapp: '',
+      },
     };
   },
   methods: {
+    clearFieldErrors() {
+      this.errors = { email: '', password: '', name: '', whatsapp: '' };
+    },
+    setFieldError(field, text) {
+      this.errors = { ...this.errors, [field]: text };
+    },
     setMode(mode) {
       this.mode = mode;
       this.isError = false;
       this.message = '';
+      this.clearFieldErrors();
     },
     async submitAuth() {
       const { email, password, name, whatsapp } = this.form;
-      if (!email.trim() || !password) {
-        this.isError = true;
-        this.message = translate('loginRequired');
+      this.isError = false;
+      this.message = '';
+      this.clearFieldErrors();
+
+      const emailTrimmed = email.trim();
+      if (!emailTrimmed) {
+        this.setFieldError('email', translate('pleaseEnterEmail'));
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed)) {
+        this.setFieldError('email', translate('invalidEmail'));
+        return;
+      }
+      if (!password) {
+        this.setFieldError('password', translate('pleaseEnterPassword'));
         return;
       }
       if (this.mode === 'register') {
         if (name.trim().length < 2) {
-          this.isError = true;
-          this.message = translate('enterFullName');
+          this.setFieldError('name', translate('enterFullName'));
           return;
         }
         if (whatsapp.replace(/\D/g, '').length < 9) {
-          this.isError = true;
-          this.message = translate('enterWhatsapp');
+          this.setFieldError('whatsapp', translate('enterWhatsapp'));
           return;
         }
         if (password.length < 6) {
-          this.isError = true;
-          this.message = translate('minChars');
+          this.setFieldError('password', translate('minChars'));
           return;
         }
       }
 
       this.isSubmitting = true;
-      this.isError = false;
-      this.message = '';
 
       try {
         if (this.mode === 'register') {
           await registerUser({
             name: name.trim(),
             whatsapp: whatsapp.trim(),
-            email: email.trim(),
+            email: emailTrimmed,
             password,
           });
         } else {
-          await loginUser({ email: email.trim(), password });
+          await loginUser({ email: emailTrimmed, password });
         }
         this.$router.replace(this.$route.query.redirect || '/profile');
       } catch (error) {
@@ -233,7 +273,7 @@ export default {
   position: relative;
   overflow: hidden;
   padding: 22px 22px 52px;
-  border-radius: var(--radius-2xl);
+  /* border-radius: var(--radius-2xl); */
   background: var(--brand-hero-gradient);
   color: #ffffff;
   box-shadow: 0 20px 48px -14px rgba(15, 23, 42, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
@@ -294,6 +334,34 @@ export default {
   text-decoration: none;
 }
 
+.auth-hero__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auth-settings {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  font-size: 0.82rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+
+.auth-settings:hover,
+.auth-settings:active {
+  background: rgba(255, 255, 255, 0.22);
+  transform: scale(1.06);
+}
+
 .auth-hero__copy {
   position: relative;
   z-index: 1;
@@ -323,6 +391,7 @@ export default {
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.15;
+  color: white;
 }
 
 .auth-hero p {
@@ -349,6 +418,7 @@ export default {
 }
 
 .auth-tabs {
+  position: relative;
   display: flex;
   gap: 6px;
   padding: 5px;
@@ -359,6 +429,7 @@ export default {
 
 .auth-tabs button {
   flex: 1;
+  position: relative;
   padding: 11px 12px;
   border: none;
   border-radius: var(--radius-md);
@@ -367,13 +438,41 @@ export default {
   font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), transform var(--transition-spring);
+  z-index: 2;
 }
 
 .auth-tabs button.is-active {
+  color: var(--text-main);
+  transform: scale(1.06);
+}
+
+.auth-tabs button:active {
+  transform: scale(0.98);
+}
+
+.auth-tabs button:focus-visible {
+  outline: 2px solid var(--brand-light);
+  outline-offset: 2px;
+}
+
+/* Sliding pill under the tabs: springs left→right when switching modes. */
+.auth-tabs__indicator {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  left: 5px;
+  width: calc(50% - 10px);
+  border-radius: var(--radius-md);
   background: var(--brand-gradient);
-  color: #ffffff;
   box-shadow: var(--shadow-brand-sm);
+  pointer-events: none;
+  z-index: 1;
+  transition: left var(--transition-spring), box-shadow var(--transition-fast);
+}
+
+.auth-tabs.is-register .auth-tabs__indicator {
+  left: 50%;
 }
 
 .auth-form {
@@ -442,6 +541,40 @@ export default {
   color: var(--text-subtle);
   padding: 6px;
   cursor: pointer;
+}
+
+/* ── Inline field errors ───────────────────────────────────── */
+.auth-field__control.has-error {
+  border-color: rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.14);
+}
+
+.auth-field__error {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 2px 2px 0;
+  font-size: 0.77rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--danger);
+  animation: auth-error-fade 0.18s ease-out;
+}
+
+.auth-field__error i {
+  flex-shrink: 0;
+  font-size: 0.85rem;
+}
+
+@keyframes auth-error-fade {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .auth-submit {

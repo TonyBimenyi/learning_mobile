@@ -6,6 +6,8 @@ const router = createRouter({
   routes: [
     { path: '/', redirect: '/home' },
     { path: '/login', name: 'login', component: () => import('@/pages/LoginPage.vue') },
+    // Open to everyone — usable even while logged out.
+    { path: '/settings', name: 'settings', component: () => import('@/pages/SettingsPage.vue') },
     { path: '/home', name: 'home', component: () => import('@/pages/HomePage.vue') },
     { path: '/discover', name: 'discover', component: () => import('@/pages/DiscoverPage.vue') },
     { path: '/my-learning', name: 'my-learning', component: () => import('@/pages/MyLearningPage.vue') },
