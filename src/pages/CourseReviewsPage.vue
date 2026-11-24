@@ -34,7 +34,7 @@
             </div>
           </section>
 
-          <section class="surface-card review-form-card">
+          <section v-if="user" class="surface-card review-form-card">
             <div class="review-form__header">
               <span class="section-kicker">{{ t('shareThoughts') }}</span>
               <h3>{{ t('rateThisCourse') }}</h3>
@@ -75,6 +75,21 @@
             </button>
           </section>
 
+          <section v-else class="surface-card review-login-card">
+            <span class="review-login-card__icon"><i class="fa-solid fa-lock"></i></span>
+            <div class="review-login-card__copy">
+              <strong>{{ t('loginToReview') }}</strong>
+              <p>{{ t('loginToReviewHint') }}</p>
+            </div>
+            <RouterLink
+              :to="{ name: 'login', query: { redirect: route.fullPath } }"
+              class="primary-button review-login-card__btn"
+            >
+              <i class="fa-solid fa-right-to-bracket"></i>
+              <span>{{ t('signIn') }}</span>
+            </RouterLink>
+          </section>
+
           <section class="reviews-list">
             <article
               v-for="review in reviews"
@@ -98,7 +113,7 @@
               <p class="review-card__text">{{ review.text }}</p>
 
               <div class="review-card__actions">
-                <button class="ghost-button like-btn" @click="handleLikeReview(review)">
+                <button class="ghost-button like-btn" :title="user ? null : t('loginToLike')" @click="handleLikeReview(review)">
                   <i class="fa-regular fa-heart"></i>
                   <span>{{ review.likes }}</span>
                 </button>
@@ -109,7 +124,7 @@
                 <p>{{ review.reply.text }}</p>
               </article>
 
-              <div class="reply-composer">
+              <div v-if="user" class="reply-composer">
                 <input
                   v-model="reviewReplies[review.id]"
                   type="text"
@@ -135,8 +150,9 @@
 
 <script>
 import { translate } from '@/services/i18n';
+import { showToast } from '@/services/toast';
 import { IonContent, IonPage } from '@ionic/vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { ref, computed, onMounted } from 'vue';
 import {
   createReview,
@@ -153,12 +169,19 @@ export default {
   props: ['id'],
   setup(props) {
     const route = useRoute();
+    const router = useRouter();
 
     const course = ref(null);
     const user = ref(null);
     const reviews = ref([]);
     const reviewReplies = ref({});
     const reviewForm = ref({ authorName: '', rating: 5, text: '' });
+
+    // Guests can read reviews, but posting/replying needs an account so the
+    // author can later edit or delete their own content.
+    const goToLogin = () => {
+      router.replace({ name: 'login', query: { redirect: route.fullPath } });
+    };
 
     const averageRating = computed(() => {
       if (!reviews.value.length) return '0.0';
@@ -187,6 +210,10 @@ export default {
     };
 
     const submitReview = async () => {
+      if (!user.value) {
+        goToLogin();
+        return;
+      }
       if (!reviewForm.value.text.trim()) return;
       try {
         const review = await createReview({
@@ -206,6 +233,10 @@ export default {
     };
 
     const handleLikeReview = async (review) => {
+      if (!user.value) {
+        showToast(translate('loginToLikeFirst'), 'warning');
+        return;
+      }
       try {
         const updated = await likeReview(review.id);
         reviews.value = reviews.value.map((item) => (item.id === updated.id ? updated : item));
@@ -215,6 +246,10 @@ export default {
     };
 
     const submitReviewReply = async (review) => {
+      if (!user.value) {
+        goToLogin();
+        return;
+      }
       const text = (reviewReplies.value[review.id] || '').trim();
       if (!text) return;
       try {
@@ -229,11 +264,13 @@ export default {
     return {
       course,
       user,
+      route,
       reviews,
       reviewReplies,
       reviewForm,
       averageRating,
       fallbackAvatar,
+      goToLogin,
       submitReview,
       handleLikeReview,
       submitReviewReply,
@@ -370,6 +407,53 @@ export default {
   background: var(--surface);
   border: 1px solid var(--line);
   box-shadow: var(--shadow-card);
+}
+
+/* Guests: read-only reviews with a sign-in prompt. */
+.review-login-card {
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+  padding: 24px 22px;
+  border-radius: var(--radius-2xl);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+  text-align: center;
+}
+
+.review-login-card__icon {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: 1.2rem;
+}
+
+.review-login-card__copy strong {
+  display: block;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.review-login-card__copy p {
+  margin: 6px 0 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.review-login-card__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  text-decoration: none;
 }
 
 .review-form__header {

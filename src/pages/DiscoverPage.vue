@@ -4,6 +4,8 @@
       <div class="screen-shell">
         <!-- Top Toolbar & Search Area -->
         <section class="surface-card discover-toolbar">
+          <span class="discover-toolbar__orb"></span>
+
           <div class="discover-toolbar__header">
             <div>
               <span class="section-kicker">
@@ -110,7 +112,7 @@
         <section v-if="isLoading" class="discover-results">
           <div v-for="n in 4" :key="'skel-'+n" class="course-card" style="pointer-events:none">
             <div class="course-card__media">
-              <SkeletonLoader type="rect" width="100%" height="180px" :rounded="true" />
+              <SkeletonLoader type="rect" width="100%" height="130px" :rounded="true" />
             </div>
             <div class="course-card__body">
               <div class="course-card__topline">
@@ -145,6 +147,7 @@
                   <i class="fa-solid fa-star"></i> {{ course.rating || '4.8' }}
                 </span>
               </div>
+              <span class="course-card__open"><i class="fa-solid fa-arrow-up-right"></i></span>
             </div>
 
             <div class="course-card__body">
@@ -314,46 +317,100 @@ export default {
 <style scoped>
 /* Discover Toolbar */
 .discover-toolbar {
+  position: relative;
+  overflow: hidden;
   display: grid;
   gap: 16px;
-  padding: 20px;
+  padding: 22px 20px;
   border-radius: var(--radius-2xl);
+  background: var(--brand-hero-gradient);
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 22px 46px -18px rgba(49, 46, 129, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.discover-toolbar__orb {
+  position: absolute;
+  top: -120px;
+  right: -70px;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.26), transparent 65%);
+  pointer-events: none;
 }
 
 .discover-toolbar__header {
+  position: relative;
+  z-index: 1;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
 
-.discover-toolbar__header h2 {
-  margin: 4px 0 0;
-  font-size: 1.45rem;
+.discover-toolbar .section-kicker {
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  font-size: 0.63rem;
   font-weight: 800;
-  color: var(--text-main);
-  letter-spacing: -0.02em;
+}
+
+.discover-toolbar__header h2 {
+  margin: 8px 0 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: #ffffff;
 }
 
 .results-badge {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--brand);
-  background: var(--brand-soft);
-  padding: 5px 12px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
   border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #ffffff;
+  font-size: 0.71rem;
+  font-weight: 800;
 }
 
 .discover-toolbar__search-row {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.discover-search {
+.discover-search.input-chip {
   flex: 1;
-  padding: 12px 16px;
+  min-width: 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.97);
+  border-color: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 14px 28px -14px rgba(15, 23, 42, 0.55);
 }
+
+.discover-search input {
+  background: transparent !important;
+  color: var(--text-main);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.discover-search input::placeholder { color: var(--text-muted); }
+
+.discover-search > i { color: var(--brand); }
 
 .search-clear-btn {
   color: var(--text-subtle);
@@ -363,53 +420,56 @@ export default {
   padding: 4px;
 }
 
-.search-clear-btn:hover {
-  color: var(--text-main);
-}
+.search-clear-btn:hover { color: var(--brand); }
 
 .filter-toggle-btn {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  color: var(--text-secondary);
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  color: #ffffff;
   display: grid;
   place-items: center;
-  font-size: 1rem;
+  font-size: 0.95rem;
   position: relative;
-  box-shadow: var(--shadow-xs);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   transition: all var(--transition-fast);
 }
 
 .filter-toggle-btn:hover {
-  border-color: var(--brand-light);
-  color: var(--brand);
+  background: rgba(255, 255, 255, 0.28);
 }
 
 .filter-toggle-btn.is-active {
-  background: var(--brand-soft);
-  border-color: var(--brand-light);
+  background: #ffffff;
+  border-color: transparent;
   color: var(--brand);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.2);
 }
 
 .filter-toggle-btn__badge {
   position: absolute;
-  top: 7px;
-  right: 7px;
+  top: 5px;
+  right: 5px;
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: var(--brand);
-  color: #ffffff;
-  font-size: 0.65rem;
+  background: #ffffff;
+  color: var(--brand);
+  font-size: 0.62rem;
   font-weight: 800;
   display: grid;
   place-items: center;
+  border: 1px solid rgba(99, 102, 241, 0.3);
 }
 
 /* Category Chip Scroll Row */
 .chip-scroll-row {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -418,20 +478,63 @@ export default {
   scrollbar-width: thin;
 }
 
+.discover-toolbar .filter-chip {
+  padding: 7px 12px;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.discover-toolbar .filter-chip:hover {
+  background: rgba(255, 255, 255, 0.24);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+
+.discover-toolbar .filter-chip.is-active {
+  background: #ffffff;
+  color: var(--brand);
+  border-color: transparent;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.18);
+}
+
 /* Filter Drawer */
 .filter-drawer {
+  position: relative;
+  z-index: 2;
   display: grid;
   gap: 12px;
   padding: 14px;
   border-radius: var(--radius-lg);
-  background: var(--surface-soft);
+  background: var(--surface);
   border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
   animation: slideDown 0.25s ease;
 }
 
 @keyframes slideDown {
   from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+.discover-toolbar .filter-drawer .filter-chip {
+  background: var(--surface-soft);
+  border-color: var(--line);
+  color: var(--text-secondary);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  font-size: 0.78rem;
+}
+
+.discover-toolbar .filter-drawer .filter-chip.is-active {
+  background: var(--brand-gradient);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: var(--shadow-brand-sm);
 }
 
 .filter-drawer__header {
@@ -473,19 +576,22 @@ export default {
   font-size: 0.78rem;
 }
 
-/* Course Results Stack */
+/* Course Results Grid */
 .discover-results {
   display: grid;
-  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
 }
 
 .course-card {
   display: flex;
   flex-direction: column;
-  border-radius: var(--radius-2xl);
+  height: 100%;
+  border-radius: var(--radius-lg);
   background: var(--surface);
   border: 1px solid var(--line);
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-xs);
   overflow: hidden;
   cursor: pointer;
   transition: all var(--transition-normal);
@@ -499,7 +605,8 @@ export default {
 
 .course-card__media {
   position: relative;
-  height: 180px;
+  width: 100%;
+  aspect-ratio: 16 / 10;
   overflow: hidden;
 }
 
@@ -516,117 +623,168 @@ export default {
 
 .course-card__overlay {
   position: absolute;
-  top: 12px;
-  left: 12px;
-  right: 12px;
+  top: 9px;
+  left: 9px;
+  right: 9px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 6px;
+}
+
+.course-card__overlay .pill {
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.62rem;
+  padding: 4px 8px;
+}
+
+.course-card__open {
+  position: absolute;
+  right: 9px;
+  bottom: 9px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--brand);
+  font-size: 0.72rem;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.25);
+  opacity: 0.9;
+  transform: none;
+  transition: all var(--transition-fast);
+}
+
+.course-card:hover .course-card__open {
+  opacity: 1;
+  transform: scale(1.08);
 }
 
 .course-card__body {
   display: grid;
-  gap: 10px;
-  padding: 18px;
+  gap: 8px;
+  flex: 1;
+  padding: 13px;
 }
 
 .course-card__topline {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 0.8rem;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 0.7rem;
   color: var(--text-muted);
 }
 
 .course-meta {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
 }
 
 .course-level-tag {
-  margin-left: auto;
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: 0.64rem;
+  font-weight: 800;
   color: var(--brand);
   background: var(--brand-soft);
-  padding: 2px 8px;
+  padding: 2px 7px;
   border-radius: var(--radius-full);
 }
 
 .course-card__body h3 {
   margin: 0;
-  font-size: 1.15rem;
-  font-weight: 700;
+  font-size: 0.94rem;
+  font-weight: 800;
   color: var(--text-main);
-  line-height: 1.35;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .course-card__body p {
   margin: 0;
-  font-size: 0.86rem;
+  font-size: 0.74rem;
   color: var(--text-muted);
-  line-height: 1.5;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .skills-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 2px;
+  gap: 5px;
+  margin-top: auto;
 }
 
 .skill-tag {
-  font-size: 0.72rem;
-  font-weight: 600;
+  font-size: 0.64rem;
+  font-weight: 700;
   color: var(--text-secondary);
   background: var(--surface-soft);
   border: 1px solid var(--line);
-  padding: 3px 9px;
+  padding: 2px 7px;
   border-radius: var(--radius-full);
 }
 
 .course-card__footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 6px;
-  padding-top: 14px;
+  display: grid;
+  gap: 9px;
+  margin-top: 2px;
+  padding-top: 11px;
   border-top: 1px solid var(--line);
 }
 
+.course-card__price-box {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .course-card__price-box small {
-  display: block;
-  font-size: 0.68rem;
-  font-weight: 600;
+  font-size: 0.62rem;
+  font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .course-card__price-box strong {
-  display: block;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 800;
   color: var(--brand);
   font-family: 'Outfit', sans-serif;
 }
 
 .course-card__btn {
-  padding: 10px 18px;
-  font-size: 0.85rem;
+  width: 100%;
+  justify-content: center;
+  padding: 9px 12px;
+  font-size: 0.76rem;
   border-radius: var(--radius-md);
 }
 
-@media (min-width: 580px) {
-  .course-card {
-    display: grid;
-    grid-template-columns: 220px 1fr;
+.empty-card { grid-column: 1 / -1; }
+
+@media (max-width: 380px) {
+  .discover-results {
+    grid-template-columns: 1fr;
   }
 
-  .course-card__media {
-    height: 100%;
-    min-height: 200px;
-  }
+  .discover-toolbar__header h2 { font-size: 1.3rem; }
+}
+
+@media (min-width: 580px) {
+  .course-card__media { aspect-ratio: 16 / 9; }
 }
 </style>

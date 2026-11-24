@@ -103,6 +103,15 @@
                 <img :src="item.courseThumbnail" :alt="item.courseTitle" loading="lazy" />
                 <span class="download-item-card__play"><i class="fa-solid fa-play"></i></span>
                 <span class="offline-pill-badge"><i class="fa-solid fa-bolt"></i> {{ t('offline') }}</span>
+                <button
+                  class="download-item-card__delete"
+                  type="button"
+                  :title="t('removeFromDownloads')"
+                  :aria-label="t('removeOfflineDownload')"
+                  @click.stop="handleDelete(item.lessonId)"
+                >
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
               </div>
 
               <div class="download-item-card__body">
@@ -121,15 +130,6 @@
                   <button class="primary-button watch-btn" type="button" @click="playOfflineLesson(item)">
                     <i class="fa-solid fa-circle-play"></i>
                     <span>{{ t('watchOffline') }}</span>
-                  </button>
-                  <button
-                    class="ghost-button delete-btn"
-                    type="button"
-                    :title="t('removeFromDownloads')"
-                    :aria-label="t('removeOfflineDownload')"
-                    @click="handleDelete(item.lessonId)"
-                  >
-                    <i class="fa-solid fa-trash-can"></i>
                   </button>
                 </div>
               </div>
@@ -332,7 +332,7 @@ export default {
   border-radius: var(--radius-2xl);
   background: var(--brand-hero-gradient);
   color: #ffffff;
-  box-shadow: var(--shadow-float);
+  box-shadow: 0 24px 48px -18px rgba(49, 46, 129, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
   margin-bottom: 16px;
   isolation: isolate;
 }
@@ -457,8 +457,8 @@ export default {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #a5b4fc, #f0abfc);
-  box-shadow: 0 0 12px rgba(196, 181, 253, 0.7);
+  background: var(--brand-gradient);
+  box-shadow: 0 0 12px var(--brand-glow);
   transition: width 0.6s cubic-bezier(0.34, 1.3, 0.45, 1);
 }
 
@@ -480,21 +480,22 @@ export default {
 }
 
 .stat-tile {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 14px 8px;
   border-radius: var(--radius-lg);
   background: var(--surface);
   border: 1px solid var(--line);
   box-shadow: var(--shadow-xs);
   min-width: 0;
+  text-align: center;
 }
 
 .stat-tile__icon {
   flex-shrink: 0;
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 11px;
   display: grid;
   place-items: center;
@@ -512,7 +513,7 @@ export default {
 }
 
 .stat-tile__copy strong {
-  font-size: 0.85rem;
+  font-size: 1rem;
   font-weight: 800;
   color: var(--text-main);
   white-space: nowrap;
@@ -521,43 +522,54 @@ export default {
 }
 
 .stat-tile__copy small {
-  font-size: 0.63rem;
-  font-weight: 650;
-  color: var(--text-muted);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
   line-height: 1.2;
 }
 
-/* Section heading */
-.downloads-heading {
-  margin-bottom: 14px;
+.downloads-heading .section-kicker {
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: 0.63rem;
+  font-weight: 800;
 }
 
-/* Downloads list */
+.downloads-heading { margin-bottom: 14px; }
+
+/* Downloads grid */
 .downloads-grid {
   display: grid;
-  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
 }
 
 .download-item-card {
   display: flex;
-  gap: 14px;
-  padding: 12px;
-  border-radius: var(--radius-xl);
+  flex-direction: column;
+  gap: 0;
+  padding: 10px;
+  border-radius: var(--radius-lg);
   transition: all var(--transition-normal);
 }
 
 .download-item-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-float);
   border-color: var(--brand-light);
 }
 
 .download-item-card__thumb {
   position: relative;
-  width: 120px;
-  min-width: 120px;
-  height: 84px;
-  border-radius: var(--radius-lg);
+  width: 100%;
+  min-width: 0;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius-md);
   overflow: hidden;
   background: #020617;
   cursor: pointer;
@@ -578,17 +590,50 @@ export default {
 .download-item-card__play {
   position: absolute;
   inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.1), rgba(15, 23, 42, 0.55));
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.05), rgba(15, 23, 42, 0.45));
   color: #ffffff;
-  font-size: 1.1rem;
-  transition: transform 0.2s ease;
 }
 
-.download-item-card:hover .download-item-card__play {
-  transform: scale(1.08);
+.download-item-card__play i {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--brand-gradient);
+  font-size: 0.72rem;
+  box-shadow: var(--shadow-brand-sm);
+  transition: transform var(--transition-fast);
+}
+
+.download-item-card:hover .download-item-card__play i {
+  transform: scale(1.1);
+}
+
+.download-item-card__delete {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.62);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.download-item-card__delete:hover {
+  background: rgba(239, 68, 68, 0.92);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 .offline-pill-badge {
@@ -608,27 +653,31 @@ export default {
 }
 
 .download-item-card__body {
+  display: grid;
+  gap: 7px;
   flex: 1;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 6px;
+  padding: 11px 4px 4px;
 }
 
 .download-item-card__course {
-  font-size: 0.7rem;
-  font-weight: 700;
+  width: fit-content;
+  max-width: 100%;
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  background: var(--brand-soft);
   color: var(--brand);
+  font-size: 0.64rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .download-item-card__title {
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   font-weight: 800;
   color: var(--text-main);
   line-height: 1.3;
@@ -643,8 +692,8 @@ export default {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
-  font-size: 0.72rem;
+  gap: 6px;
+  font-size: 0.68rem;
   color: var(--text-muted);
   font-weight: 600;
 }
@@ -662,35 +711,21 @@ export default {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 4px;
+  margin-top: auto;
+  padding-top: 6px;
 }
 
 .watch-btn {
-  padding: 6px 14px;
-  font-size: 0.78rem;
+  width: 100%;
+  justify-content: center;
+  padding: 8px 12px;
+  font-size: 0.74rem;
   font-weight: 700;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-brand-sm);
 }
 
-.delete-btn {
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-md);
-  color: var(--danger);
-  background: var(--danger-soft);
-  border: 1px solid rgba(239, 68, 68, 0.25);
-  font-size: 0.8rem;
-}
-
-.delete-btn:hover {
-  background: rgba(239, 68, 68, 0.16);
-  border-color: var(--danger);
-}
+.empty-downloads-card { grid-column: 1 / -1; }
 
 /* Empty state */
 .empty-downloads-card {
@@ -753,9 +788,22 @@ export default {
 
 /* Responsive */
 @media (max-width: 480px) {
-  .download-item-card { flex-direction: column; }
-  .download-item-card__thumb { width: 100%; height: 150px; }
-  .downloads-stats { grid-template-columns: 1fr 1fr; }
-  .stat-tile:last-child { grid-column: 1 / -1; }
+  .stat-tile {
+    padding: 12px 6px;
+  }
+
+  .empty-actions {
+    flex-direction: column;
+  }
+
+  .empty-actions button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 400px) {
+  .downloads-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -497,7 +497,7 @@ export default {
   border-radius: var(--radius-2xl);
   background: var(--brand-hero-gradient);
   color: #ffffff;
-  box-shadow: 0 20px 48px -10px rgba(15, 23, 42, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  box-shadow: 0 26px 52px -20px rgba(49, 46, 129, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
   overflow: hidden;
 }
 
@@ -532,11 +532,12 @@ export default {
 }
 
 .learning-hero h1 {
-  margin: 0;
-  font-size: 1.68rem;
+  margin: 4px 0 0;
+  font-size: 1.8rem;
   font-weight: 800;
   color: #ffffff;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
 }
 
 .learning-hero p {
@@ -595,12 +596,11 @@ export default {
 /* Tab Selector Dock */
 .learning-tabs-dock {
   display: flex;
+  gap: 4px;
   padding: 5px;
-  border-radius: var(--radius-xl);
-  background: var(--surface);
+  border-radius: var(--radius-full);
+  background: var(--surface-soft);
   border: 1px solid var(--line);
-  box-shadow: var(--shadow-xs);
-  gap: 8px;
 }
 
 .learning-tab-dock-btn {
@@ -609,12 +609,12 @@ export default {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 12px 16px;
-  border-radius: var(--radius-lg);
+  padding: 10px 14px;
+  border-radius: var(--radius-full);
   border: none;
   background: transparent;
   color: var(--text-muted);
-  font-size: 0.86rem;
+  font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -630,30 +630,31 @@ export default {
 .overview-stats-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .stat-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  border-radius: var(--radius-xl);
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 14px 8px;
+  border-radius: var(--radius-lg);
+  text-align: center;
 }
 
 .stat-item__icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
   display: grid;
   place-items: center;
-  font-size: 1rem;
+  font-size: 0.9rem;
   flex-shrink: 0;
 }
 
-.stat-item__icon--indigo { background: #eef2ff; color: #4f46e5; }
-.stat-item__icon--amber { background: #fffbeb; color: #d97706; }
-.stat-item__icon--emerald { background: #ecfdf5; color: #059669; }
+.stat-item__icon--indigo { background: var(--brand-soft); color: var(--brand); }
+.stat-item__icon--amber { background: var(--warning-soft); color: #d97706; }
+.stat-item__icon--emerald { background: var(--success-soft); color: #059669; }
 
 .stat-item__data strong {
   display: block;
@@ -666,9 +667,26 @@ export default {
 
 .stat-item__data span {
   display: block;
-  font-size: 0.74rem;
-  font-weight: 600;
-  color: var(--text-muted);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+
+.content-section .section-kicker {
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: 0.63rem;
+  font-weight: 800;
+}
+
+.content-section .section-heading h3 {
+  margin-top: 8px;
+  font-size: 1.2rem;
+  letter-spacing: -0.015em;
 }
 
 /* Resume Stack */
@@ -679,13 +697,13 @@ export default {
 
 .resume-card {
   display: grid;
-  grid-template-columns: 96px 1fr;
-  gap: 16px;
-  padding: 14px;
+  grid-template-columns: 92px 1fr;
+  gap: 14px;
+  padding: 12px;
   border-radius: var(--radius-xl);
   background: var(--surface);
   border: 1px solid var(--line);
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-xs);
   cursor: pointer;
   align-items: center;
   transition: all var(--transition-normal);
@@ -693,15 +711,15 @@ export default {
 
 .resume-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-float);
+  box-shadow: var(--shadow-card);
   border-color: rgba(99, 102, 241, 0.3);
 }
 
 .resume-card__thumb-container {
   position: relative;
-  width: 96px;
+  width: 92px;
   height: 84px;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
@@ -709,50 +727,66 @@ export default {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.35s ease;
+}
+
+.resume-card:hover .resume-card__thumb-container img {
+  transform: scale(1.06);
 }
 
 .resume-card__play-btn {
   position: absolute;
   inset: 0;
   margin: auto;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: rgba(15, 23, 42, 0.7);
-  backdrop-filter: blur(4px);
+  background: var(--brand-gradient);
+  box-shadow: var(--shadow-brand-sm);
+  border: 2px solid rgba(255, 255, 255, 0.6);
   color: #ffffff;
   display: grid;
   place-items: center;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
 }
 
 .resume-badge {
   position: absolute;
   bottom: 6px;
   right: 6px;
-  padding: 2px 6px;
+  padding: 2px 7px;
   border-radius: var(--radius-full);
   background: rgba(15, 23, 42, 0.85);
   color: #ffffff;
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   font-weight: 800;
 }
 
 .resume-card__details {
   display: grid;
   gap: 6px;
+  min-width: 0;
 }
 
 .resume-course-name {
-  font-size: 0.72rem;
-  font-weight: 700;
+  width: fit-content;
+  max-width: 100%;
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  background: var(--brand-soft);
   color: var(--brand);
+  font-size: 0.64rem;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .resume-lesson-title {
-  font-size: 0.96rem;
+  font-size: 0.92rem;
+  font-weight: 800;
   color: var(--text-main);
   line-height: 1.35;
   display: -webkit-box;
@@ -765,45 +799,64 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.76rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
 }
 
 .resume-pct {
-  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--brand-soft);
   color: var(--brand);
+  font-weight: 800;
+}
+
+.progress-track {
+  height: 5px;
+  border-radius: var(--radius-full);
+  background: var(--line);
+  overflow: hidden;
+}
+
+.progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--brand-gradient);
+  transition: width 0.4s ease;
 }
 
 /* Course Library Grid */
 .course-library-grid {
   display: grid;
-  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
 }
 
 .course-lib-card {
-  display: grid;
-  grid-template-columns: 130px 1fr;
-  gap: 16px;
-  padding: 14px;
-  border-radius: var(--radius-xl);
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  border-radius: var(--radius-lg);
   background: var(--surface);
   border: 1px solid var(--line);
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-xs);
   cursor: pointer;
   transition: all var(--transition-normal);
-  align-items: center;
 }
 
 .course-lib-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-float);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-card);
   border-color: rgba(99, 102, 241, 0.3);
 }
 
 .course-lib-card__media {
   position: relative;
-  height: 100px;
-  border-radius: var(--radius-lg);
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
@@ -811,35 +864,44 @@ export default {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.course-lib-card:hover .course-lib-card__media img {
+  transform: scale(1.06);
 }
 
 .course-lib-card__category {
   position: absolute;
-  top: 6px;
-  left: 6px;
-  padding: 3px 8px;
+  top: 8px;
+  left: 8px;
+  padding: 4px 8px;
   border-radius: var(--radius-full);
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(4px);
   color: var(--brand);
-  font-size: 0.65rem;
-  font-weight: 700;
+  font-size: 0.62rem;
+  font-weight: 800;
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.15);
 }
 
 .course-lib-card__content {
   display: grid;
-  gap: 6px;
+  gap: 7px;
+  flex: 1;
+  padding: 11px 4px 4px;
 }
 
 .course-lib-card__tags {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 6px;
 }
 
 .level-tag {
-  font-size: 0.72rem;
-  font-weight: 600;
+  font-size: 0.64rem;
+  font-weight: 700;
   color: var(--text-muted);
   background: var(--surface-soft);
   padding: 2px 7px;
@@ -848,10 +910,11 @@ export default {
 
 .course-lib-card h4 {
   margin: 0;
-  font-size: 0.98rem;
-  font-weight: 700;
+  font-size: 0.9rem;
+  font-weight: 800;
   color: var(--text-main);
-  line-height: 1.35;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -860,15 +923,17 @@ export default {
 
 .course-lib-card__progress-info {
   display: grid;
-  gap: 4px;
-  margin-top: 4px;
+  gap: 5px;
+  margin-top: auto;
+  padding-top: 4px;
 }
 
 .progress-text-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.74rem;
+  gap: 8px;
+  font-size: 0.68rem;
 }
 
 .progress-text-row small {
@@ -877,6 +942,7 @@ export default {
 
 .progress-text-row strong {
   color: var(--brand);
+  font-weight: 800;
 }
 
 /* Downloads Vault */
@@ -885,9 +951,13 @@ export default {
   gap: 16px;
   padding: 22px;
   border-radius: var(--radius-2xl);
-  background:
-    radial-gradient(circle at top right, rgba(16, 185, 129, 0.1), transparent 30%),
-    var(--surface);
+  background: linear-gradient(135deg, rgba(238, 242, 255, 0.92) 0%, rgba(245, 243, 255, 0.92) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.16);
+}
+
+:root[data-theme="dark"] .downloads-vault-header {
+  background: linear-gradient(135deg, rgba(49, 46, 129, 0.5) 0%, rgba(30, 41, 59, 0.6) 100%);
+  border-color: rgba(129, 140, 248, 0.26);
 }
 
 .vault-info {
@@ -957,36 +1027,36 @@ export default {
   background: var(--danger-soft);
 }
 
-/* Downloads Stack */
+/* Downloads Grid */
 .downloads-stack {
   display: grid;
-  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
 }
 
 .download-card {
-  display: grid;
-  grid-template-columns: 108px 1fr;
-  gap: 16px;
-  padding: 14px;
-  border-radius: var(--radius-xl);
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  border-radius: var(--radius-lg);
   background: var(--surface);
   border: 1px solid var(--line);
-  box-shadow: var(--shadow-card);
-  align-items: center;
+  box-shadow: var(--shadow-xs);
   transition: all var(--transition-normal);
 }
 
 .download-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-float);
-  border-color: rgba(16, 185, 129, 0.3);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-card);
+  border-color: rgba(99, 102, 241, 0.3);
 }
 
 .download-card__thumb {
   position: relative;
-  width: 108px;
-  height: 94px;
-  border-radius: var(--radius-lg);
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius-md);
   overflow: hidden;
   cursor: pointer;
 }
@@ -995,33 +1065,38 @@ export default {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.35s ease;
+}
+
+.download-card:hover .download-card__thumb img {
+  transform: scale(1.06);
 }
 
 .download-card__play {
   position: absolute;
   inset: 0;
   margin: auto;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(4px);
+  background: var(--brand-gradient);
+  box-shadow: var(--shadow-brand-sm);
+  border: 2px solid rgba(255, 255, 255, 0.6);
   color: #ffffff;
   display: grid;
   place-items: center;
-  font-size: 0.8rem;
+  font-size: 0.72rem;
 }
 
 .offline-ready-badge {
   position: absolute;
-  top: 6px;
-  left: 6px;
+  top: 7px;
+  left: 7px;
   padding: 3px 8px;
   border-radius: var(--radius-full);
-  background: rgba(16, 185, 129, 0.9);
-  backdrop-filter: blur(4px);
+  background: rgba(16, 185, 129, 0.92);
   color: #ffffff;
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   font-weight: 800;
   display: inline-flex;
   align-items: center;
@@ -1030,24 +1105,35 @@ export default {
 
 .download-card__body {
   display: grid;
-  gap: 6px;
+  gap: 7px;
+  flex: 1;
+  padding: 11px 4px 4px;
 }
 
 .download-card__course {
-  font-size: 0.72rem;
-  font-weight: 700;
+  width: fit-content;
+  max-width: 100%;
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  background: var(--brand-soft);
   color: var(--brand);
+  font-size: 0.64rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .download-card__title {
-  font-size: 0.95rem;
+  font-size: 0.86rem;
+  font-weight: 800;
   color: var(--text-main);
-  line-height: 1.35;
+  line-height: 1.3;
   cursor: pointer;
   display: -webkit-box;
-  -webkit-line-clamp: 1;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1060,7 +1146,8 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.76rem;
+  gap: 8px;
+  font-size: 0.68rem;
   color: var(--text-muted);
 }
 
@@ -1070,44 +1157,56 @@ export default {
   background: var(--surface-soft);
   padding: 2px 7px;
   border-radius: var(--radius-full);
+  border: 1px solid var(--line);
 }
 
 .download-card__actions {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 4px;
+  margin-top: auto;
+  padding-top: 6px;
 }
 
 .watch-offline-btn {
   flex: 1;
-  padding: 8px 12px;
-  font-size: 0.82rem;
+  min-width: 0;
+  justify-content: center;
+  padding: 8px 10px;
+  font-size: 0.74rem;
   border-radius: var(--radius-md);
   gap: 6px;
 }
 
 .delete-download-btn {
-  width: 36px;
-  height: 36px;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
   padding: 0;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
   display: grid;
   place-items: center;
-  color: var(--text-muted);
+  color: var(--danger);
+  background: var(--danger-soft);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  font-size: 0.74rem;
 }
 
 .delete-download-btn:hover {
   color: var(--danger);
-  border-color: rgba(239, 68, 68, 0.3);
-  background: var(--danger-soft);
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.16);
 }
 
 @media (max-width: 540px) {
   .learning-hero {
     flex-direction: column;
     align-items: stretch;
-    padding: 20px;
+    padding: 22px 18px 20px;
+  }
+
+  .learning-hero h1 {
+    font-size: 1.5rem;
   }
 
   .learning-hero__tracks {
@@ -1116,24 +1215,23 @@ export default {
   }
 
   .overview-stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+
+  .stat-item {
+    padding: 12px 5px;
+  }
+
+  .downloads-vault-header {
+    padding: 18px;
+  }
+}
+
+@media (max-width: 400px) {
+  .course-library-grid,
+  .downloads-stack {
     grid-template-columns: 1fr;
-  }
-
-  .course-lib-card {
-    grid-template-columns: 1fr;
-  }
-
-  .course-lib-card__media {
-    height: 140px;
-  }
-
-  .download-card {
-    grid-template-columns: 1fr;
-  }
-
-  .download-card__thumb {
-    width: 100%;
-    height: 150px;
   }
 }
 </style>

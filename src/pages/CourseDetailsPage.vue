@@ -164,7 +164,21 @@
           <section class="block">
             <div class="block__head">
               <h2>{{ t('lessons') }}</h2>
-              <span>{{ lessonPositionLabel }}</span>
+              <span class="lesson-count">{{ lessonPositionLabel }}</span>
+            </div>
+
+            <div v-if="totalLessons" class="lesson-summary">
+              <div class="lesson-summary__head">
+                <span class="lesson-summary__done">
+                  <i class="fa-solid fa-circle-check"></i>
+                  <strong>{{ completedLessons }}/{{ totalLessons }}</strong>
+                  <span>{{ t('lessons') }}</span>
+                </span>
+                <span class="lesson-summary__pct">{{ courseProgressPercent }}%</span>
+              </div>
+              <div class="lesson-summary__rail">
+                <i :style="{ width: courseProgressPercent + '%' }"></i>
+              </div>
             </div>
 
             <div class="lesson-list">
@@ -179,20 +193,46 @@
                 }"
                 @click="selectLesson(index)"
               >
-                <span class="lesson__no">{{ isLessonComplete(index) ? '✓' : String(index + 1).padStart(2, '0') }}</span>
+                <span class="lesson__no">
+                  <i v-if="isLessonComplete(index)" class="fa-solid fa-check"></i>
+                  <template v-else>{{ String(index + 1).padStart(2, '0') }}</template>
+                </span>
+
                 <span class="lesson__body">
-                  <strong>{{ lesson.title }}</strong>
-                  <small>
-                    {{ lesson.duration || t('flexible') }} <i>&bull;</i> {{ lesson.type || t('video') }}
-                    <em v-if="lesson.freePreview && !hasCourseAccess">{{ t('freePreview') }}</em>
-                    <em v-else-if="isLessonDownloadedById(getLessonId(lesson, index))">{{ t('offline') }}</em>
-                  </small>
+                  <strong class="lesson__title">{{ lesson.title }}</strong>
+                  <span class="lesson__meta">
+                    <span><i class="fa-regular fa-clock"></i>{{ lesson.duration || t('flexible') }}</span>
+                    <i class="lesson__dot"></i>
+                    <span>{{ lesson.type || t('video') }}</span>
+                    <em
+                      v-if="lesson.freePreview && !hasCourseAccess"
+                      class="lesson__tag lesson__tag--preview"
+                    >
+                      {{ t('freePreview') }}
+                    </em>
+                    <em
+                      v-else-if="isLessonDownloadedById(getLessonId(lesson, index))"
+                      class="lesson__tag lesson__tag--offline"
+                    >
+                      <i class="fa-solid fa-arrow-down"></i>{{ t('offline') }}
+                    </em>
+                  </span>
                 </span>
+
                 <span class="lesson__end">
-                  <small v-if="getLessonProgress(index)">{{ getLessonProgress(index) }}%</small>
-                  <i v-if="!canPlayLesson(lesson)" class="fa-solid fa-lock"></i>
-                  <i v-else class="fa-solid fa-chevron-right"></i>
+                  <small v-if="getLessonProgress(index)" class="lesson__pct">{{ getLessonProgress(index) }}%</small>
+                  <span
+                    class="lesson__cta"
+                    :class="{
+                      'is-active': selectedLessonIndex === index,
+                      'is-locked': !canPlayLesson(lesson),
+                    }"
+                  >
+                    <i v-if="!canPlayLesson(lesson)" class="fa-solid fa-lock"></i>
+                    <i v-else class="fa-solid fa-play"></i>
+                  </span>
                 </span>
+
                 <span v-if="getLessonProgress(index)" class="lesson__bar">
                   <i :style="{ width: getLessonProgress(index) + '%' }"></i>
                 </span>
@@ -210,31 +250,45 @@
             </div>
 
             <div class="composer">
-              <transition name="reveal" mode="out-in">
-                <div v-if="composerOpen" key="form" class="composer__form">
-                  <img :src="userAvatar" :alt="userDisplayName" class="composer__avatar" />
-                  <div class="composer__body">
-                    <textarea v-model="questionForm.text" rows="2" :placeholder="t('commentPlaceholder')"></textarea>
-                    <div class="composer__row">
-                      <button class="composer__time" type="button" @click="insertCurrentVideoTime">
-                        <i class="fa-solid fa-stopwatch"></i>{{ t('addTime', { time: formatClock(currentVideoTime) }) }}
-                      </button>
-                      <button class="composer__close" type="button" :aria-label="t('cancel')" @click="composerOpen = false">
-                        <i class="fa-solid fa-xmark"></i>
-                      </button>
-                      <button class="composer__post" type="button" :disabled="isSubmittingComment || !questionForm.text.trim()" @click="submitQuestion">
-                        <i v-if="isSubmittingComment" class="fa-solid fa-circle-notch fa-spin"></i>
-                        <i v-else class="fa-solid fa-paper-plane"></i>
-                        <span>{{ t('post') }}</span>
-                      </button>
+              <template v-if="isLoggedIn">
+                <transition name="reveal" mode="out-in">
+                  <div v-if="composerOpen" key="form" class="composer__form">
+                    <img :src="userAvatar" :alt="userDisplayName" class="composer__avatar" />
+                    <div class="composer__body">
+                      <textarea v-model="questionForm.text" rows="2" :placeholder="t('commentPlaceholder')"></textarea>
+                      <div class="composer__row">
+                        <button class="composer__time" type="button" @click="insertCurrentVideoTime">
+                          <i class="fa-solid fa-stopwatch"></i>{{ t('addTime', { time: formatClock(currentVideoTime) }) }}
+                        </button>
+                        <button class="composer__close" type="button" :aria-label="t('cancel')" @click="composerOpen = false">
+                          <i class="fa-solid fa-xmark"></i>
+                        </button>
+                        <button class="composer__post" type="button" :disabled="isSubmittingComment || !questionForm.text.trim()" @click="submitQuestion">
+                          <i v-if="isSubmittingComment" class="fa-solid fa-circle-notch fa-spin"></i>
+                          <i v-else class="fa-solid fa-paper-plane"></i>
+                          <span>{{ t('post') }}</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <button v-else key="peek" class="composer__peek" type="button" @click="composerOpen = true">
-                  <i class="fa-regular fa-pen-to-square"></i>
-                  <span>{{ t('commentPlaceholder') }}</span>
-                </button>
-              </transition>
+                  <button v-else key="peek" class="composer__peek" type="button" @click="composerOpen = true">
+                    <i class="fa-regular fa-pen-to-square"></i>
+                    <span>{{ t('commentPlaceholder') }}</span>
+                  </button>
+                </transition>
+              </template>
+              <RouterLink
+                v-else
+                :to="{ name: 'login', query: { redirect: $route.fullPath } }"
+                class="composer__signin"
+              >
+                <span class="composer__signin-icon"><i class="fa-solid fa-lock"></i></span>
+                <span class="composer__signin-copy">
+                  <strong>{{ t('loginToComment') }}</strong>
+                  <small>{{ t('loginToCommentHint') }}</small>
+                </span>
+                <i class="fa-solid fa-right-to-bracket"></i>
+              </RouterLink>
             </div>
 
             <div class="feed">
@@ -281,7 +335,7 @@
                   </div>
 
                   <div v-if="editingCommentId !== discussion.id" class="comment__actions">
-                    <button type="button" :class="{ 'is-liked': discussion.likedByMe }" @click="handleLikeDiscussion(discussion)">
+                    <button type="button" :class="{ 'is-liked': discussion.likedByMe }" :title="isLoggedIn ? null : t('loginToLike')" @click="handleLikeDiscussion(discussion)">
                       <i :class="discussion.likedByMe ? 'fa-solid fa-thumbs-up' : 'fa-regular fa-thumbs-up'"></i>{{ discussion.likes }}
                     </button>
                     <button type="button" @click="discussion.showReply = !discussion.showReply">
@@ -316,12 +370,20 @@
                         </div>
                       </div>
 
-                      <div class="reply-composer">
+                      <div v-if="isLoggedIn" class="reply-composer">
                         <input v-model="reviewReplies[discussion.id]" type="text" :placeholder="t('writeReply')" />
                         <button class="primary-button compact" type="button" @click="submitDiscussionReply(discussion)">
                           <i class="fa-solid fa-paper-plane"></i>
                         </button>
                       </div>
+                      <RouterLink
+                        v-else
+                        :to="{ name: 'login', query: { redirect: $route.fullPath } }"
+                        class="reply-login-link"
+                      >
+                        <i class="fa-solid fa-right-to-bracket"></i>
+                        <span>{{ t('loginToReply') }}</span>
+                      </RouterLink>
                     </div>
                   </transition>
                 </div>
@@ -500,6 +562,7 @@ export default {
     const isSubmittingComment = ref(false);
     const progressMap = ref(getProgressMap());
     const user = ref({ id: '', name: 'Learner', avatar: '', role: 'student', email: '', whatsapp: '' });
+    const isLoggedIn = ref(Boolean(getToken()));
     const currentVideoTime = ref(0);
     const currentVideoDuration = ref(0);
     const lastPersistedSecond = ref(-1);
@@ -688,6 +751,16 @@ export default {
         total: (course.value.curriculum || []).length,
       });
     });
+
+    const totalLessons = computed(() => (course.value?.curriculum || []).length);
+    const completedLessons = computed(() => (course.value?.curriculum || []).filter(
+      (_, index) => Number(getProgressEntry(index)?.progressPercent || 0) >= 95,
+    ).length);
+    const courseProgressPercent = computed(() => (
+      totalLessons.value
+        ? Math.round((completedLessons.value / totalLessons.value) * 100)
+        : 0
+    ));
 
     const canModerateComments = computed(() => {
       const role = String(user.value?.role || '').toLowerCase();
@@ -970,6 +1043,10 @@ export default {
     };
 
     const submitQuestion = async () => {
+      if (!isLoggedIn.value) {
+        router.replace({ name: 'login', query: { redirect: route.fullPath } });
+        return;
+      }
       const text = questionForm.value.text.trim();
       if (!text || !course.value || !selectedLesson.value || isSubmittingComment.value) return;
       isSubmittingComment.value = true;
@@ -1046,6 +1123,10 @@ export default {
     };
 
     const handleLikeDiscussion = async (discussion) => {
+      if (!isLoggedIn.value) {
+        showToast(translate('loginToLikeFirst'), 'warning');
+        return;
+      }
       try {
         const updated = await likeDiscussion(discussion.id);
         const wasLiked = Boolean(discussion.likedByMe);
@@ -1064,6 +1145,10 @@ export default {
     };
 
     const submitDiscussionReply = async (discussion) => {
+      if (!isLoggedIn.value) {
+        router.replace({ name: 'login', query: { redirect: route.fullPath } });
+        return;
+      }
       const text = String(reviewReplies.value[discussion.id] || '').trim();
       if (!text) return;
       try {
@@ -1217,6 +1302,7 @@ export default {
         .catch(() => {});
       getCurrentUser()
         .then((u) => {
+          isLoggedIn.value = Boolean(u);
           if (u) {
             user.value = {
               id: u.id || u.extId || '',
@@ -1275,6 +1361,7 @@ export default {
       editingCommentId,
       enrollButtonIcon,
       enrollButtonLabel,
+      isLoggedIn,
       enrollInCourse,
       enrollmentStatus,
       enrollmentStatusLabel,
@@ -1307,6 +1394,9 @@ export default {
       isSubmittingComment,
       insertCurrentVideoTime,
       lessonPositionLabel,
+      totalLessons,
+      completedLessons,
+      courseProgressPercent,
       offlineVideoUrl,
       paymentNotice,
       paymentNoticeTone,
@@ -1638,55 +1728,294 @@ export default {
 .block__link i { font-size: 0.7rem; }
 
 /* ── Lessons ── */
-.lesson-list { display: grid; gap: 8px; }
+.block__head .lesson-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: var(--radius-full);
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.lesson-summary {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-xs);
+}
+
+.lesson-summary__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.lesson-summary__done {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.lesson-summary__done i {
+  color: var(--brand);
+  font-size: 0.8rem;
+}
+
+.lesson-summary__done strong {
+  color: var(--text-main);
+  font-weight: 800;
+}
+
+.lesson-summary__pct {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--brand);
+}
+
+.lesson-summary__rail {
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--line);
+  overflow: hidden;
+}
+
+.lesson-summary__rail i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--brand-gradient);
+  box-shadow: 0 0 10px var(--brand-glow);
+  transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.lesson-list { display: grid; gap: 9px; }
+
 .lesson {
   position: relative;
-  display: flex; align-items: center; gap: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   width: 100%;
-  padding: 12px 14px 13px;
+  padding: 13px 13px 15px;
   border-radius: var(--radius-lg);
   background: var(--surface);
   border: 1px solid var(--line);
   box-shadow: var(--shadow-xs);
   text-align: left;
   overflow: hidden;
-  transition: border-color var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
 }
-.lesson:active { transform: scale(0.99); }
-.lesson.is-active { border-color: var(--brand-light); background: var(--brand-soft); }
+
+.lesson:active { transform: scale(0.985); }
+
+.lesson.is-active {
+  border-color: var(--brand-light);
+  background: var(--brand-soft);
+  box-shadow: 0 12px 26px -16px var(--brand-glow);
+}
+
 .lesson.is-active::before {
-  content: ''; position: absolute; left: 0; top: 12px; bottom: 12px;
-  width: 3px; border-radius: 0 3px 3px 0; background: var(--brand-gradient);
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: 14px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--brand-gradient);
 }
+
 .lesson__no {
-  width: 32px; height: 32px; flex-shrink: 0;
-  display: grid; place-items: center;
-  border-radius: 10px;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
   background: var(--surface-soft);
+  border: 1px solid var(--line);
   color: var(--text-muted);
-  font-size: 0.78rem; font-weight: 800;
+  font-size: 0.73rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  transition: all var(--transition-fast);
 }
-.lesson.is-active .lesson__no { background: var(--brand-gradient); color: #fff; }
-.lesson.is-done .lesson__no { background: var(--success-soft); color: #059669; }
-.lesson__body { display: grid; gap: 3px; min-width: 0; flex: 1; }
-.lesson__body strong {
-  font-size: 0.86rem; font-weight: 700; color: var(--text-main);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+
+.lesson__no i { font-size: 0.7rem; }
+
+.lesson.is-active .lesson__no {
+  background: var(--brand-gradient);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: var(--shadow-brand-sm);
 }
-.lesson__body small { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; }
-.lesson__body small i { margin: 0 3px; opacity: 0.5; font-style: normal; }
-.lesson__body em {
-  margin-left: 6px; padding: 1px 6px;
+
+.lesson.is-done .lesson__no {
+  background: var(--brand-soft);
+  border-color: transparent;
+  color: var(--brand);
+}
+
+.lesson.is-done.is-active .lesson__no {
+  background: var(--brand-gradient);
+  color: #fff;
+}
+
+.lesson__body {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  flex: 1;
+}
+
+.lesson__title {
+  font-size: 0.87rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--text-main);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lesson.is-active .lesson__title { color: var(--brand); }
+
+.lesson__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 8px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.lesson__meta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.lesson__meta i { font-size: 0.62rem; opacity: 0.85; }
+
+.lesson__dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text-subtle);
+  opacity: 0.5;
+}
+
+.lesson__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  font-size: 0.6rem;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.lesson__tag i { font-size: 0.55rem; opacity: 1; }
+
+.lesson__tag--preview {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.lesson__tag--offline {
+  background: var(--success-soft);
+  color: #059669;
+}
+
+.lesson__end {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.lesson__end .lesson__pct {
+  padding: 4px 7px;
+  border-radius: var(--radius-xs);
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.lesson__cta {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  color: var(--text-subtle);
+  font-size: 0.6rem;
+  transition: all var(--transition-fast);
+}
+
+.lesson__cta.is-active {
+  background: var(--brand-gradient);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: var(--shadow-brand-sm);
+}
+
+.lesson.is-locked .lesson__cta {
+  background: transparent;
+  border-style: dashed;
+  color: var(--text-muted);
+}
+
+.lesson.is-locked .lesson__title { color: var(--text-muted); }
+
+/* Course progress rail */
+.lesson__bar {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 6px;
+  height: 4px;
   border-radius: var(--radius-full);
-  background: var(--brand-soft); color: var(--brand);
-  font-size: 0.62rem; font-style: normal; font-weight: 800;
+  background: var(--line);
+  overflow: hidden;
+  pointer-events: none;
 }
-.lesson__end { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; }
-.lesson__end small { font-size: 0.66rem; font-weight: 800; color: var(--brand); }
-.lesson__end i { color: var(--text-subtle); font-size: 0.75rem; }
-.lesson.is-locked .lesson__end i { color: var(--text-muted); }
-.lesson__bar { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--line-subtle); }
-.lesson__bar i { display: block; height: 100%; background: var(--success); }
+
+.lesson__bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--brand-gradient);
+  box-shadow: 0 0 8px var(--brand-glow);
+  transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.lesson.is-done .lesson__bar i { box-shadow: 0 0 10px var(--brand-glow); }
 
 /* ── Composer — slim until tapped ── */
 .composer {
@@ -1706,6 +2035,61 @@ export default {
 }
 .composer__peek i { color: var(--brand); font-size: 0.85rem; }
 .composer__peek span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Logged-out visitors: invite them to sign in before commenting. */
+.composer__signin {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  text-decoration: none;
+}
+.composer__signin-icon {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: 0.85rem;
+}
+.composer__signin-copy {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.composer__signin-copy strong {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+.composer__signin-copy small {
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+.composer__signin > i {
+  flex-shrink: 0;
+  color: var(--brand);
+  font-size: 0.85rem;
+}
+.reply-login-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: var(--radius-full);
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
 .composer__form { display: flex; align-items: flex-start; gap: 9px; padding: 10px; }
 .composer__avatar { width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%; object-fit: cover; }
 .composer__body { flex: 1; min-width: 0; display: grid; gap: 7px; }
@@ -1767,84 +2151,276 @@ export default {
 .list-move { transition: transform 0.3s ease; }
 .comment__reveal { display: grid; gap: 8px; margin-top: 2px; }
 
-/* ── Feed — compact ── */
-.feed { display: grid; gap: 7px; }
-.feed__sort { display: flex; gap: 6px; }
-.feed__sort button {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 4px 9px;
-  border-radius: var(--radius-full);
-  background: var(--surface); border: 1px solid var(--line);
-  color: var(--text-muted); font-size: 0.66rem; font-weight: 700;
-}
-.feed__sort button.is-on { background: var(--brand-soft); color: var(--brand); border-color: transparent; }
-.comment {
-  display: flex; gap: 8px;
-  padding: 10px 11px;
-  border-radius: var(--radius-lg);
-  background: var(--surface); border: 1px solid var(--line);
-  transition: border-color 0.25s ease, transform 0.25s ease;
-}
-.comment:hover { border-color: var(--line-focus); transform: translateY(-1px); }
-.comment__avatar { width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%; object-fit: cover; }
-.comment__body { flex: 1; min-width: 0; display: grid; gap: 4px; }
-.comment__top { display: flex; align-items: center; gap: 6px; }
-.comment__top strong { font-size: 0.76rem; color: var(--text-main); }
-.comment__top small { font-size: 0.6rem; color: var(--text-subtle); margin-left: auto; }
-.tag { padding: 0 6px; border-radius: var(--radius-full); background: var(--brand-soft); color: var(--brand); font-size: 0.56rem; font-weight: 800; }
-.comment__text { margin: 0; font-size: 0.76rem; line-height: 1.45; color: var(--text-secondary); }
-.comment__edit { display: grid; gap: 6px; }
-.comment__edit textarea {
-  width: 100%; resize: none; padding: 8px;
-  border-radius: var(--radius-sm);
-  background: var(--surface-soft); border: 1px solid var(--line);
-  color: var(--text-main); font-size: 0.76rem;
-}
-.comment__edit > div { display: flex; gap: 6px; justify-content: flex-end; }
-.time-chip {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 0 5px; margin: 0 2px;
-  border-radius: var(--radius-full);
-  background: var(--brand-soft); color: var(--brand);
-  font-size: 0.66rem; font-weight: 700;
-}
-.time-chip i { font-size: 0.55rem; }
-.comment__actions { display: flex; align-items: center; gap: 4px; }
-.comment__actions button {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 7px;
+/* ── Feed ── */
+.feed { display: grid; gap: 10px; margin-top: 4px; }
+
+.feed__sort {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
   border-radius: var(--radius-full);
   background: var(--surface-soft);
-  color: var(--text-muted); font-size: 0.66rem; font-weight: 700;
+  border: 1px solid var(--line);
 }
-.comment__actions button.is-liked { background: var(--brand-soft); color: var(--brand); }
+
+.feed__sort button {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: var(--radius-full);
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  transition: all var(--transition-fast);
+}
+
+.feed__sort button i { font-size: 0.66rem; }
+
+.feed__sort button.is-on {
+  background: var(--surface);
+  color: var(--brand);
+  box-shadow: var(--shadow-xs);
+}
+
+.comment-list { display: grid; gap: 10px; }
+
+.comment {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  padding: 13px 14px;
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-xs);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.comment:hover {
+  border-color: var(--line-focus);
+  box-shadow: var(--shadow-card);
+  transform: translateY(-1px);
+}
+
+.comment__avatar {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--surface);
+  box-shadow: 0 0 0 3px var(--brand-soft);
+}
+
+.comment__body { flex: 1; min-width: 0; display: grid; gap: 7px; }
+
+.comment__top { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+
+.comment__top strong {
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text-main);
+}
+
+.comment__top small {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--text-subtle);
+  margin-left: auto;
+}
+
+.tag {
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.comment__text {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.comment__edit { display: grid; gap: 8px; }
+
+.comment__edit textarea {
+  width: 100%;
+  resize: none;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  color: var(--text-main);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  transition: all var(--transition-fast);
+}
+
+.comment__edit textarea:focus {
+  outline: none;
+  border-color: var(--brand-light);
+  box-shadow: 0 0 0 4px var(--brand-glow);
+}
+
+.comment__edit > div { display: flex; gap: 6px; justify-content: flex-end; }
+
+.time-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  margin: 0 2px;
+  border-radius: var(--radius-xs);
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.time-chip i { font-size: 0.55rem; }
+
+.comment__actions { display: flex; align-items: center; gap: 6px; }
+
+.comment__actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: var(--radius-full);
+  background: var(--surface-soft);
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  transition: all var(--transition-fast);
+}
+
+.comment__actions button:hover {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.comment__actions button.is-liked {
+  background: var(--brand-soft);
+  color: var(--brand);
+  border-color: rgba(99, 102, 241, 0.2);
+}
+
+.comment__actions button i { font-size: 0.7rem; }
+
 .comment__spacer { flex: 1; }
-.replies { display: grid; gap: 5px; padding-left: 8px; border-left: 2px solid var(--line); }
-.reply { padding: 6px 8px; border-radius: var(--radius-sm); background: var(--surface-soft); }
-.reply__top { display: flex; align-items: center; gap: 6px; }
-.reply__top strong { font-size: 0.7rem; color: var(--text-main); }
+
+.comment__reveal { display: grid; gap: 8px; }
+
+.replies {
+  display: grid;
+  gap: 8px;
+  padding-left: 12px;
+  border-left: 2px solid var(--brand-soft);
+}
+
+.reply {
+  padding: 9px 11px;
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+}
+
+.reply__top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+.reply__top strong { font-size: 0.74rem; font-weight: 800; color: var(--text-main); }
+
 .reply__top small { font-size: 0.58rem; color: var(--text-subtle); margin-left: auto; }
-.reply p { margin: 2px 0 0; font-size: 0.72rem; line-height: 1.4; color: var(--text-secondary); }
-.reply-composer { display: flex; gap: 6px; }
+
+.reply p { margin: 3px 0 0; font-size: 0.76rem; line-height: 1.5; color: var(--text-secondary); }
+
+.reply-composer { display: flex; align-items: center; gap: 6px; }
+
 .reply-composer input {
-  flex: 1; min-width: 0; padding: 7px 9px;
-  border-radius: var(--radius-sm);
-  background: var(--surface-soft); border: 1px solid var(--line);
-  color: var(--text-main); font-size: 0.74rem;
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border-radius: var(--radius-full);
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  color: var(--text-main);
+  font-size: 0.76rem;
+  transition: all var(--transition-fast);
 }
+
+.reply-composer input:focus {
+  outline: none;
+  background: var(--surface);
+  border-color: var(--brand-light);
+  box-shadow: 0 0 0 4px var(--brand-glow);
+}
+
+.reply-composer .primary-button.compact {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+
 .more {
-  display: flex; align-items: center; justify-content: center; gap: 5px;
-  padding: 6px;
-  color: var(--brand); font-size: 0.72rem; font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 11px;
+  border-radius: var(--radius-full);
+  background: var(--brand-soft);
+  color: var(--brand);
+  border: 1px solid transparent;
+  font-size: 0.76rem;
+  font-weight: 800;
+  transition: all var(--transition-fast);
 }
+
+.more:hover { background: var(--brand-gradient); color: #fff; }
+
 .feed__empty {
-  display: grid; place-items: center; gap: 4px;
-  padding: 16px;
-  border-radius: var(--radius-lg);
-  background: var(--surface); border: 1px dashed var(--line-strong);
-  color: var(--text-muted); font-size: 0.76rem;
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  padding: 28px 20px;
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  text-align: center;
 }
-.feed__empty i { font-size: 1.1rem; opacity: 0.6; }
+
+.feed__empty i {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: 1.15rem;
+  opacity: 1;
+}
 
 @media (max-width: 380px) {
   .vsc__head { flex-wrap: wrap; }

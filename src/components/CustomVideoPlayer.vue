@@ -54,7 +54,7 @@
             <span class="download-pct-badge">{{ downloadPercent }}%</span>
           </span>
           <i v-else-if="isDownloaded" class="fa-solid fa-circle-check text-emerald"></i>
-          <i v-else class="fa-solid fa-arrow-down-to-bracket"></i>
+          <i v-else class="fa-solid fa-download"></i>
         </button>
 
         <div v-if="isOfflinePlayback" class="offline-pill">
@@ -64,12 +64,6 @@
       </div>
 
       <div class="custom-video-player__top-actions">
-        <button class="control-icon control-icon--ghost" type="button" :aria-label="t('castToTv')" @click="toggleCastMode">
-          <i class="fa-solid fa-tv"></i>
-        </button>
-        <button class="control-icon control-icon--ghost" type="button" :aria-label="t('captions')" @click="toggleCaptions">
-          <span>CC</span>
-        </button>
         <button class="control-icon control-icon--ghost" type="button" :aria-label="t('settings')" @click="toggleSettings">
           <i class="fa-solid fa-gear"></i>
         </button>
@@ -283,8 +277,6 @@ export default {
       showSettings: false,
       isFullscreen: false,
       isFullscreenRotated: false,
-      captionsEnabled: false,
-      castEnabled: false,
       playbackSpeed: 1,
       selectedQuality: 'auto',
       currentTime: 0,
@@ -681,12 +673,6 @@ export default {
       if (!player) return;
       player.muted = !player.muted;
       this.isMuted = player.muted;
-    },
-    toggleCaptions() {
-      this.captionsEnabled = !this.captionsEnabled;
-    },
-    toggleCastMode() {
-      this.castEnabled = !this.castEnabled;
     },
     toggleSettings() {
       this.showSettings = !this.showSettings;
@@ -1137,11 +1123,6 @@ export default {
 .control-icon:hover {
   background: rgba(255, 255, 255, 0.25);
   transform: scale(1.05);
-}
-
-.control-icon--ghost span {
-  font-size: 0.76rem;
-  font-weight: 800;
 }
 
 .control-icon--bottom {
